@@ -58,6 +58,86 @@ aws sts get-caller-identity
 
 ---
 
+# Einführung: Node.js Container Anwendung starten
+Dockerfile-Node
+```
+# base image for this container
+FROM node:14
+
+# copy javascript source directory into the container
+COPY application/js/* application/js/
+
+# make container's port 8181 accessible to the outside
+EXPOSE 8181
+
+# run the app bundle with node
+CMD [ "node", "application/js/express-8181.js" ]
+```
+
+Applikation:
+```
+application/js/express-8181.js
+```
+
+Das Docker Image kann lokal gebaut werden. Daraus kann dann ein Container instanziiert werden.
+Wird dieser gestartet, dann startet die Node.js express Serveranwendung auf Port 8181:
+```
+http://localhost:8181
+http://localhost:8181/user
+```
+
+Diese Docker-Container wollen wir nun auf den AWS Server pushen und somit die Node.js express Anwendung auf einer öffentlichen IP verfügbar machen.
+
+---
+
+# Create new Terraform Configuration
+Terraform Dateien haben die Erweiterung `.tf`. Beim Ausführen eines Terraform-Befehls werden alle `.tf`-Dateien im aktuellen
+  Verzeichnis eingelesen. Somit ist die Anzahl und Benamung aller Terraform-Dateien beliebig.
+  Wir erstellen all unsere Terraform-Dateien in einem separaten Unterverzeichnis `terraform` unseres Projekts.
+  Daher muss auch der Terraform-Befehl immer aus diesem Verzeichnis heraus aufgerufen werden!
+
+## 1. provider.tf
+Add `terraform/provider.tf`.
+```
+provider "aws" {
+    region = "eu-central-1"
+}
+```
+Download all required Terraform packages for this provider: 
+```
+terraform init
+```
+Terraform creates the lockfile `.terraform.lock.hcl` for tracking changes on the packages required by Terraform.
+```
+terraform apply
+```
+Applies the current configuration to the AWS Server.
+As no resources have been specified so far, no resources are created.
+
+## 2. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 3. Setup main.tf
 This will describe our AWS EC2 instance:
 ```
@@ -97,10 +177,6 @@ Show the current Terraform Configuration
 terraform show
 ```
 
-When Terraform created this EC2 instance, it gathered the resource's metadata from the AWS provider --
-  and wrote it to the state file.
-
-# 9. Project State
 List Resources in your project's state:
 ```
 terraform state list
