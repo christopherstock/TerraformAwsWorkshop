@@ -116,12 +116,22 @@ Download all required Terraform packages for this provider:
 ```
 terraform init
 ```
+This inits Terraform for the specified setup by downloading all required Terraform plugins --
+The plugin ('provider') for AWS and Docker in our case ('kreuzwerker/docker').
+Downloads required Terraform AWS plugins.
+```
+terraform init
+```
+
 Terraform creates the lockfile `.terraform.lock.hcl` for tracking changes on the packages required by Terraform.
 ```
 terraform apply
 ```
 Applies the current configuration to the AWS Server.
 As no resources has been specified so far, no resources are created.
+
+On changing Terraform configurations, Terraform builds an execution plan that only 
+modifies what is necessary to reach the desired state.
 
 ## 2. terraform/ecr_repository_node.tf - Deklaration eines ECR Repositories für den Node-Docker Container
 Mit dem AWS Sercice ECR (Elastic Container Registry) können Docker Container-Images auf den AWS-Server gepusht
@@ -137,7 +147,6 @@ Diese Änderungen wenden wir an. Diesmal müssen wir die skizziert angezeigten �
 ```
 terraform apply
 ```
-
 Das neue Container-Repository wird im AWS Service **ECR** unter **Repositories** angezeigt:
 ![ECR > Repositories](_ASSET/screenshot/ecr_repositories.png)
 Betritt man das Repository, so kann man über den Button **View Push Commands** die erforderlichen CLI-Befehle einsehen,
@@ -163,33 +172,48 @@ Unsere Node.js-Anwendung ist damit in einem Container-Image abgelegt und in der 
 Mit dem AWS-Service **ECS** (Elastic Container Service) können nun Container von den registrierten Images
   instanziiert und gestartet werden.
 
+# 3 - Add empty ECS Cluster
 
+The ECS is a fully managed container orchestration service for running containers.
 
+ECS has three parts: **clusters**, **services**, and **tasks**:
+- **Tasks** are JSON files that describe how a container should be run.
+  For example, you need to specify the ports and image location for your application.
+- A **service** simply runs a specified number of tasks and restarts/kills them as needed.
+  This has similarities to an auto-scaling group for EC2.
+- A **cluster** is a logical grouping of **services** and **tasks**.
 
+# 4 - Add ECS Task Definition
 
+# 5 - Add ECS Service
 
+# 6 - Add Network Security Group
 
+# 7 - Add EC2 Instance + IAM instance profile + IAM role
 
-
-
-
-
-
-
-
-
-
-# 3. Setup main.tf
 This will describe our AWS EC2 instance:
 ```
-./main.tf
+terraform/ec2_instance.tf
 ```
 
-# 4. Terraform init
-Downloads required Terraform AWS plugins.
+# 8 - Add user-data field
+
+# 9 - Second Container: nginx
+
+### Destroy Terraform environment
+This will remove the previously created Docker image and container. 
 ```
-terraform init
+terraform destroy
 ```
+Confirm with `yes` and `ENTER`.
+
+# 10 - Third container: php-fpm
+
+
+
+
+
+
 
 # 5. Auto-Format all Terraform files
 ```
@@ -201,17 +225,6 @@ terraform fmt
 terraform validate
 ```
 
-# 7. Terraform apply
-Apply Terraform Configuration
-```
-terraform apply
-```
-Terraform waits for the EC2 instance to become available.
-This may take some minutes.
-
-Your new instances will show up in the EC2 console:
-https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Instances:
-
 # 8. Show Terraform State Information
 Show the current Terraform Configuration
 ```
@@ -221,37 +234,6 @@ terraform show
 List Resources in your project's state:
 ```
 terraform state list
-```
-
-# 10. Change Terraform Configuration
-Infrastructure is continuously evolving and Terraform helps you to manage that change.
-As you change Terraform configurations, Terraform builds an execution plan that only 
-modifies what is necessary to reach your desired state.
-
-The AMI (Amazon Machine Image) is changed in `main.tf` --
-This changes the AMI from **ubuntu/images/hvm/ubuntu-precise-12.04-amd64-server-20170502**
-to a **Ubuntu 16.04 AMI** machine.
-
-# 11. Chekov - IaC Linter? - 'Policy as Code'
-https://www.checkov.io/
-Checkov scans cloud infrastructure configurations to find misconfigurations before they're deployed.
-
-# 12. Terraform Apply
-```
-terraform apply
-```
-This will apply the changes: It will destroy the old AMI and create the new one.
-
-The new configuration is shown with the `show` command:
-```
-terraform show
-```
-
-# 13. Destroying Infrastructure
-This command is the inverse of `terraform apply`.
-It does not destroy resources running elsewhere that are not managed by the current Terraform project.
-```
-terraform destroy
 ```
 
 # 14. Input Variables
@@ -282,54 +264,6 @@ terraform output
 ``` 
 Terraform outputs help to connect Terraform projects with other parts of your infrastructure,
 or with other Terraform projects.
-
-========================================================================================
-
-# Single Steps for the "Terraform Docker PHP8 Laravel" Primer
-
-Tutorial picked from:
-https://medium.com/avmconsulting-blog/how-to-deploy-a-dockerised-node-js-application-on-aws-ecs-with-terraform-3e6bceb48785
-
-See the commits:
-
-# 1 - ECR Repository
-
-# 2 - Create Docker Image
-
-# 3 - Push Docker Image to ECR
-
-# 4 - Add empty ECS Cluster
-
-The ECS is a fully managed container orchestration service for running containers.
-
-ECS has three parts: **clusters**, **services**, and **tasks**:
-- **Tasks** are JSON files that describe how a container should be run.
-  For example, you need to specify the ports and image location for your application.
-- A **service** simply runs a specified number of tasks and restarts/kills them as needed.
-  This has similarities to an auto-scaling group for EC2.
-- A **cluster** is a logical grouping of **services** and **tasks**.
-
-# 5 - Add ECS Task Definition
-
-# 6 - Add ECS Service
-
-# 7 - Add Network Security Group
-
-# 8 - Add EC2 Instance + IAM instance profile + IAM role
-
-# 9 - Add user-data field
-
-# 10 - Second Container: nginx
-
-### Destroy Terraform environment
-This will remove the previously created Docker image and container. 
-```
-terraform destroy
-```
-Confirm with `yes` and `ENTER`.
-
-# 11 - Third container: php-fpm
-
 
 ========================================================================================
  
@@ -391,13 +325,6 @@ open -a Docker
 
 ### Create main.tf
 Find the content inside this repository. `./main.tf`.
-
-### Init Terraform 
-This inits Terraform for the specified setup by downloading all required Terraform plugins --
-The plugin ('provider') for Docker in our case ('kreuzwerker/docker').
-```
-terraform init
-```
 
 ### Apply Terraform 
 This will apply the specified Terraform structure.
