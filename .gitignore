@@ -1,0 +1,8 @@
+# IntelliJ
+.idea
+
+# Terraform
+.terraform
+
+# macOS
+.DS_Store
