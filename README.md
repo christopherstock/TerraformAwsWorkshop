@@ -1,6 +1,6 @@
 # Terraform AWS Workshop
 
-We setup an AWS Infrastructure with Terraform.
+We'll setup a complete AWS Infrastructure for various Web Applications with Terraform.
 It sets up a Terraform configuration for defining one single **AWS EC2 instance**.
 This EC2 instance shall run three Docker container using **AWS ECS**.
 The containers run on different ports of the EC2 instance and contain various web applications in Node.js,
@@ -106,7 +106,7 @@ Terraform Dateien haben die Erweiterung `.tf`. Beim Ausführen eines Terraform-B
   Daher muss auch der Terraform-Befehl immer aus diesem Verzeichnis heraus aufgerufen werden!
 
 ## 1. terraform/provider.tf - Deklaration des Cloud Providers
-Add `terraform/provider.tf`.
+Add `terraform/provider.tf`:
 ```
 provider "aws" {
     region = "eu-central-1"
@@ -125,9 +125,25 @@ As no resources has been specified so far, no resources are created.
 
 ## 2. terraform/ecr_repository_node.tf - Deklaration eines ECR Repositories für den Node-Docker Container
 
+Wir erstellen ein neues aber noch leeres ECR Repository in den später ein Docker-Container gepusht werden kann:
+Add `terraform/ecr_repository_node.tf`:
+```
+resource "aws_ecr_repository" "workshop_ecr_repository_node" {
+    name = "workshop_ecr_repository_node"
+}
+```
+Diese Änderungen wenden wir an. Diesmal müssen wir die skizziert angezeigten Änderungen explizit mit `yes` bestätigen.
+```
+terraform apply
+```
 
+Das neue Container-Repository wird im AWS Service **ECR** unter **Repositories** angezeigt:
+![ECR > Repositories](_ASSET/screenshot/ecr_repositories.png)
+Betritt man das Repository, so kann man über den Button **View Push Commands** die erforderlichen CLI-Befehle einsehen,
+  um ein Docker Container-Image lokal zu bauen und in dieses AWS ECR Repository zu pushern.
 
-
+Diese Befehle führen wir jetzt nicht manuell lokal aus sondern verbauen sie in unser Terraform-Skript:
+Complete `terraform/ecr_repository_node.tf`.
 
 
 
