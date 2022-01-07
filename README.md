@@ -79,11 +79,20 @@ Applikation:
 application/js/express-8181.js
 ```
 
-Das Docker Image kann lokal gebaut werden. Daraus kann dann ein Container instanziiert werden.
-Wird dieser gestartet, dann startet die Node.js express Serveranwendung auf Port 8181:
+Das Docker Image kann auch lokal gebaut werden. Daraus kann dann ein Container instanziiert werden.
+
 ```
-http://localhost:8181
-http://localhost:8181/user
+docker build . --tag express-js-app:14.18
+docker images
+docker run --detach --publish 5555:8181 --tty express-js-app:14.18
+http://localhost:5555/user
+```
+Der interne Container-Port 8181 wird auf das Host-Betriebssystem auf Port 5555 gemappt.
+
+Nachdem der Container gestartet wurde, steht die Node.js express Serveranwendung auf Port 5555 zur Verfügung:
+```
+http://localhost:5555
+http://localhost:5555/user
 ```
 
 Diese Docker-Container wollen wir nun auf den AWS Server pushen und somit die Node.js express Anwendung auf einer öffentlichen IP verfügbar machen.
@@ -96,7 +105,7 @@ Terraform Dateien haben die Erweiterung `.tf`. Beim Ausführen eines Terraform-B
   Wir erstellen all unsere Terraform-Dateien in einem separaten Unterverzeichnis `terraform` unseres Projekts.
   Daher muss auch der Terraform-Befehl immer aus diesem Verzeichnis heraus aufgerufen werden!
 
-## 1. provider.tf
+## 1. terraform/provider.tf - Deklaration des Cloud Providers
 Add `terraform/provider.tf`.
 ```
 provider "aws" {
@@ -112,9 +121,9 @@ Terraform creates the lockfile `.terraform.lock.hcl` for tracking changes on the
 terraform apply
 ```
 Applies the current configuration to the AWS Server.
-As no resources have been specified so far, no resources are created.
+As no resources has been specified so far, no resources are created.
 
-## 2. 
+## 2. terraform/ecr_repository_node.tf - Deklaration eines ECR Repositories für den Node-Docker Container
 
 
 
@@ -254,15 +263,6 @@ See the commits:
 # 1 - ECR Repository
 
 # 2 - Create Docker Image
-
-Can also be run locally - output should be visible after running the container:
-
-```
-docker build . --tag hello-js-app:14.18
-docker images
-docker run --detach --publish 5555:8181 --tty hello-js-app:14.18
-http://localhost:5555/user
-```
 
 # 3 - Push Docker Image to ECR
 
