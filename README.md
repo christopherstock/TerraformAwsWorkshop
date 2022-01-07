@@ -17,7 +17,8 @@ HTML, JS and PHP.
 ```
   aws --version
 ```
-- AWS Account required
+- AWS Account required (CreditCard required)
+  "Die Größe meiner Cloud skaliert mit meiner Kreditkarte"
   Access & Secret Key deployed in `~/.aws/credentials`
 ```
   aws 
@@ -104,6 +105,8 @@ Terraform Dateien haben die Erweiterung `.tf`. Beim Ausführen eines Terraform-B
   Verzeichnis eingelesen. Somit ist die Anzahl und Benamung aller Terraform-Dateien beliebig.
   Wir erstellen all unsere Terraform-Dateien in einem separaten Unterverzeichnis `terraform` unseres Projekts.
   Daher muss auch der Terraform-Befehl immer aus diesem Verzeichnis heraus aufgerufen werden!
+- Terraform's configuration language is **declarative** -
+  it describes the desired end-state for your infrastructure and contains NO step-by-step instructions.
 
 ## 1. terraform/provider.tf - Deklaration des Cloud Providers
 Add `terraform/provider.tf`:
@@ -168,20 +171,31 @@ Die Provisionierung dauert nun auch deutlich länger. Anschließend können wir 
 Unsere Node.js-Anwendung ist damit in einem Container-Image abgelegt und in der ECR registriert.
 
 ---
-
 Mit dem AWS-Service **ECS** (Elastic Container Service) können nun Container von den registrierten Images
   instanziiert und gestartet werden.
 
-# 3 - Add empty ECS Cluster
-
 The ECS is a fully managed container orchestration service for running containers.
 
-ECS has three parts: **clusters**, **services**, and **tasks**:
-- **Tasks** are JSON files that describe how a container should be run.
-  For example, you need to specify the ports and image location for your application.
+Der ECS besteht aus drei Komponenten: **clusters**, **services**, and **tasks**:
+- **Tasks** are JSON files that describe how a container should be run. Beispielsweise werden die Ports und Container Images angegeben. 
 - A **service** simply runs a specified number of tasks and restarts/kills them as needed.
-  This has similarities to an auto-scaling group for EC2.
 - A **cluster** is a logical grouping of **services** and **tasks**.
+---
+
+## 3. terraform/ecs_cluster.tf - Deklaration eines ECS Clusters
+Create full `terraform/ecs_cluster.tf`.
+
+```
+terraform apply
+```
+Unser neu erstellter ECS Cluster wird im ECS Service angezeigt:
+![ECS > Cluster](_ASSET/screenshot/ecs_cluster.png)
+
+
+
+
+
+
 
 # 4 - Add ECS Task Definition
 
@@ -189,65 +203,18 @@ ECS has three parts: **clusters**, **services**, and **tasks**:
 
 # 6 - Add Network Security Group
 
-# 7 - Add EC2 Instance + IAM instance profile + IAM role
+# 7 - Add EC2 Instance
 
 This will describe our AWS EC2 instance:
 ```
 terraform/ec2_instance.tf
 ```
 
-# 8 - Add user-data field
+# 8 - IAM instance profile + IAM role
 
-# 9 - Second Container: nginx
+# 9 - Add user-data field
 
-### Destroy Terraform environment
-This will remove the previously created Docker image and container. 
-```
-terraform destroy
-```
-Confirm with `yes` and `ENTER`.
-
-# 10 - Third container: php-fpm
-
-
-
-
-
-
-
-# 5. Auto-Format all Terraform files
-```
-terraform fmt
-```
-
-# 6. Validate Terraform Configuration
-```
-terraform validate
-```
-
-# 8. Show Terraform State Information
-Show the current Terraform Configuration
-```
-terraform show
-```
-
-List Resources in your project's state:
-```
-terraform state list
-```
-
-# 14. Input Variables
-New file `variables.tf` added.
-
-All `.tf` files are loaded by Terraform -- Naming is arbitrary.
-
-# 15. Passing Variables via CLI
-This overrides the file values.
-```
-terraform apply -var "instance_name=YetAnotherName"
-```
-
-# 16. Output Queries Values from AWS
+# 10 - Output Queries Values from AWS
 Create file `outputs.tf`. Then apply this new configuration:
 ```
 terraform apply
@@ -265,82 +232,65 @@ terraform output
 Terraform outputs help to connect Terraform projects with other parts of your infrastructure,
 or with other Terraform projects.
 
-========================================================================================
- 
-### TODO add PHP-fpm Server + phpinfo/symfony?
 
+# 12 - Second Container: nginx
 
-# Terraform Primer
-
-## Software Requirements
-- Terraform 1.1.2
-- AWS Account required (CreditCard required)
-
-## Quotes
-- "Infrastructure as Code"
-- Infrastruktur ist genauso ein Artefakt wie der Quellcode meiner Anwendung
-- Terraform plugins are called "**providers**"
-- IaC tools allow you to manage infrastructure with configuration files rather than through a graphical UI
-- "Die Größe meiner Cloud skaliert mit der Kreditkarte."
-- Terraform's configuration language is **declarative** -
-  it describes the desired end-state for your infrastructure and contains NO step-by-step instructions.
-- "Terraform ist das Schweizer Taschenmesser der Cloud Infrastruktur"
-- Terraform can be used with all major cloud providers.
-  (AWS, Microsoft Azure, Google Cloud. Kubernetes, Oracle Cloud Infrastructure)
-
-## Phases of Terraform Infrastructure Deployment
-- **Scope** - Identify the infrastructure for your project.
-- **Author** - Write the configuration for your infrastructure.
-- **Initialize** - Install the plugins Terraform needs to manage the infrastructure.
-- **Plan** - Preview the changes Terraform will make to match your configuration.
-- **Apply** - Make the planned changes.
-
-# Terraform AWS Tutorial
-- https://learn.hashicorp.com/collections/terraform/aws-get-started
-
-## 1. Install terraform
-With Homebrew
+### Destroy Terraform environment
+This will remove the previously created Docker image and container. 
 ```
-brew tap hashicorp/tap
-brew install hashicorp/tap/terraform
-```
-
-## 2. Create AWS Credentials
-Enter **AWS Identity and Access Management (IAM)**
-- Create User + Access Key!
-- Save in `~/.aws/credentials`:
-
-```
-[default]
-aws_access_key_id=...
-aws_secret_access_key=...
-```
-
-## 3. Create NGINX Server Hello World
-
-### Install and Run Docker Desktop for macOS:
-```
-open -a Docker
-```
-
-### Create main.tf
-Find the content inside this repository. `./main.tf`.
-
-### Apply Terraform 
-This will apply the specified Terraform structure.
-```
-terraform apply
+terraform destroy
 ```
 Confirm with `yes` and `ENTER`.
 
-### Test Terraform 
-The new NGINX Docker image and container have now been created.
-NGINX is running on:
+# 13 - Third container: php-fpm
 
+
+
+
+
+---
+
+# More Terraform Commands
+
+## Auto-Format all Terraform files
 ```
-http://localhost:8000/
+terraform fmt
 ```
 
+## Show Configuration change plan without apply (dry run)
+```
+terraform plan
+```
+
+## Validate current Terraform Configuration
+```
+terraform validate
+```
+
+## Show current Terraform State Configuration
+```
+terraform show
+```
+
+## List all Resources in your project's state:
+```
+terraform state list
+```
+
+---
+
+# Further Reading
+
+## Input Variables
+New file `variables.tf` added.
+
+All `.tf` files are loaded by Terraform -- Naming is arbitrary.
+
+## Passing Variables via CLI
+This overrides the file values.
+```
+terraform apply -var "instance_name=YetAnotherName"
+```
 
 ## Local state file
 Terraform is working with a local statefile.
@@ -353,4 +303,21 @@ Terraform is working with a local statefile.
 - Terraform uses the state file to determine the changes to make to your infrastructure
   so that it will match your configuration.
 
-## Terraform Import => Übernimmt Config von Web-Oberfläche
+## Terraform Import
+Terraform kann auch die aktuelle Config aus der AWS Web-Oberfläche auslesen und in einer lokalen Terraform-Konfiguration ablegen.
+```
+testcode?
+```
+
+# Terraform rocks!
+
+## Quotes
+"Infrastructure as Code" is just right for developers:
+  Infrastruktur ist genauso ein Artefakt wie der Quellcode meiner Anwendung
+Terraform has a good developer experience.
+
+- IaC tools allow you to manage infrastructure with configuration files rather than through a graphical UI
+- "Die Größe meiner Cloud skaliert mit der Kreditkarte."
+- "Terraform ist das Schweizer Taschenmesser der Cloud Infrastruktur"
+- Terraform can be used with all major cloud providers.
+  (AWS, Microsoft Azure, Google Cloud. Kubernetes, Oracle Cloud Infrastructure)
