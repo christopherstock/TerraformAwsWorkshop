@@ -124,7 +124,8 @@ Applies the current configuration to the AWS Server.
 As no resources has been specified so far, no resources are created.
 
 ## 2. terraform/ecr_repository_node.tf - Deklaration eines ECR Repositories für den Node-Docker Container
-
+Mit dem AWS Sercice ECR (Elastic Container Registry) können Docker Container-Images auf den AWS-Server gepusht
+  und dort verwaltet werden.
 Wir erstellen ein neues aber noch leeres ECR Repository in den später ein Docker-Container gepusht werden kann:
 Add `terraform/ecr_repository_node.tf`:
 ```
@@ -145,7 +146,22 @@ Betritt man das Repository, so kann man über den Button **View Push Commands** 
 Diese Befehle führen wir jetzt nicht manuell lokal aus sondern verbauen sie in unser Terraform-Skript:
 Complete `terraform/ecr_repository_node.tf`.
 
+Da diese `provisioner`-Schritte lediglich bei der Probisionierung, also dem initialen Setup des Repositories ausgeführt werden,
+müssen wir die Terraform-Konfiguration explizit zerstören und erneut erstellen. Beide Befehle müssen mit `yes` bestätigt werden:
+```
+terraform destroy
+terraform apply
+```
+Die Provisionierung dauert nun auch deutlich länger. Anschließend können wir unser neues Node.js-Container-Image
+  in unserem Repository sehen:
+![ECR > Node.js-Repository](_ASSET/screenshot/ecr_repository_node.png)
 
+Unsere Node.js-Anwendung ist damit in einem Container-Image abgelegt und in der ECR registriert.
+
+---
+
+Mit dem AWS-Service **ECS** (Elastic Container Service) können nun Container von den registrierten Images
+  instanziiert und gestartet werden.
 
 
 
