@@ -108,6 +108,8 @@ Terraform Dateien haben die Erweiterung `.tf`. Beim Ausführen eines Terraform-B
 - Terraform's configuration language is **declarative** -
   it describes the desired end-state for your infrastructure and contains NO step-by-step instructions.
 
+---
+
 ## 1. terraform/provider.tf - Deklaration des Cloud Providers
 Add `terraform/provider.tf`:
 ```
@@ -136,10 +138,13 @@ As no resources has been specified so far, no resources are created.
 On changing Terraform configurations, Terraform builds an execution plan that only 
 modifies what is necessary to reach the desired state.
 
+---
+
 ## 2. terraform/ecr_repository_node.tf - Deklaration eines ECR Repositories für den Node-Docker Container
 Mit dem AWS Sercice ECR (Elastic Container Registry) können Docker Container-Images auf den AWS-Server gepusht
   und dort verwaltet werden.
-Wir erstellen ein neues aber noch leeres ECR Repository in den später ein Docker-Container gepusht werden kann:
+Wir erstellen ein neues aber noch leeres AWS ECR Repository in den später ein Docker-Container gepusht werden kann.
+  Wir vergeben die ID und den Namen `workshop_ecr_repository_node` für unser neues Repository.
 Add `terraform/ecr_repository_node.tf`:
 ```
 resource "aws_ecr_repository" "workshop_ecr_repository_node" {
@@ -180,6 +185,7 @@ Der ECS besteht aus drei Komponenten: **clusters**, **services**, and **tasks**:
 - **Tasks** are JSON files that describe how a container should be run. Beispielsweise werden die Ports und Container Images angegeben. 
 - A **service** simply runs a specified number of tasks and restarts/kills them as needed.
 - A **cluster** is a logical grouping of **services** and **tasks**.
+
 ---
 
 ## 3. terraform/ecs_cluster.tf - Deklaration eines ECS Clusters
@@ -191,30 +197,33 @@ terraform apply
 Unser neu erstellter ECS Cluster wird im ECS Service angezeigt:
 ![ECS > Cluster](_ASSET/screenshot/ecs_cluster.png)
 
+---
+
+## 4. Add ECS Task Definition
 
 
 
 
 
 
-# 4 - Add ECS Task Definition
 
-# 5 - Add ECS Service
 
-# 6 - Add Network Security Group
+# 5. Add ECS Service
 
-# 7 - Add EC2 Instance
+# 6. Add Network Security Group
+
+# 7. Add EC2 Instance
 
 This will describe our AWS EC2 instance:
 ```
 terraform/ec2_instance.tf
 ```
 
-# 8 - IAM instance profile + IAM role
+# 8. IAM instance profile + IAM role
 
-# 9 - Add user-data field
+# 9. Add user-data field
 
-# 10 - Output Queries Values from AWS
+# 10. Output Queries Values from AWS
 Create file `outputs.tf`. Then apply this new configuration:
 ```
 terraform apply
@@ -233,7 +242,7 @@ Terraform outputs help to connect Terraform projects with other parts of your in
 or with other Terraform projects.
 
 
-# 12 - Second Container: nginx
+# 12. Second Container: nginx
 
 ### Destroy Terraform environment
 This will remove the previously created Docker image and container. 
@@ -242,7 +251,7 @@ terraform destroy
 ```
 Confirm with `yes` and `ENTER`.
 
-# 13 - Third container: php-fpm
+# 13. Third container: php-fpm
 
 
 
