@@ -1,0 +1,11 @@
+# base image for this container
+FROM node:14
+
+# copy javascript source directory into the container
+COPY application/js/* application/js/
+
+# make container's port 8181 accessible to the outside
+EXPOSE 8181
+
+# run the app bundle with node
+CMD [ "node", "application/js/express-8181.js" ]
