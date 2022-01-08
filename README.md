@@ -285,19 +285,34 @@ VPC > Sicherheit > Sicherheitsgruppen
 
 ---
 
+# 6. IAM instance profile + IAM role
+Im Service AWS IAM (Identity and Access Management) muss ein Profil für unsere EC2-Instanz erstellt werden.
+Hierfür muss auch eine IAM Role erstellt werden. 
+Add files `terraform/iam_instance_profile.tf` and `terraform/iam_role.tf`.
+```
+terraform apply
+```
+Anschließend wird das neue IAM Instance Profile und die neue IAM Role in der Weboberfläche angezeigt:
+![IAM > Zugriffsverwaltung > Rollen](_ASSET/screenshot/iam_role.png)
+
+Das **Instance-Profile** kann nicht über die Web-Oberfläche verwaltet werden sondern lediglich über Terraform bzw. über den AWS CLI-Client.
+
+---
 
 
 
 
 
-# 5. Add EC2 Instance
+
+
+# 7. Add EC2 Instance
 
 This will describe our AWS EC2 instance:
 ```
 terraform/ec2_instance.tf
 ```
 
-# 6. IAM instance profile + IAM role
+
 
 # 7. Add user-data field
 
