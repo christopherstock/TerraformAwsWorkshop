@@ -285,7 +285,7 @@ VPC > Sicherheit > Sicherheitsgruppen
 
 ---
 
-# 6. IAM instance profile + IAM role
+# 5. IAM instance profile + IAM role
 Im Service AWS IAM (Identity and Access Management) muss ein Profil für unsere EC2-Instanz erstellt werden.
 Hierfür muss auch eine IAM Role erstellt werden. 
 Add files `terraform/iam_instance_profile.tf` and `terraform/iam_role.tf`.
@@ -299,24 +299,41 @@ Das **Instance-Profile** kann nicht über die Web-Oberfläche verwaltet werden s
 
 ---
 
+# 6. Add EC2 Instance
+Nun haben wir alle Services beisammen die wir zum Betrieb unseres Containers benötigen.
+Da diese auch eine Maschine/Serverinstanz benötigen, erstellen wir als letztes eine EC2 Instanz
+mit Hilfe des AWS Services **EC2** (Elastic Compute Cloud).
 
+Alle zur Verfügung stehenden EC2 Instanztypen (AMI = Amazon Machine Image) finden Sie unter
+`EC2 > Abbilder > AMI Catalog`.
 
-
-
-
-
-# 7. Add EC2 Instance
-
-This will describe our AWS EC2 instance:
+The next Terraform file will describe our **AWS EC2** instance:
 ```
 terraform/ec2_instance.tf
 ```
+Das Feld `user_data` definiert ein Shell-Skript, das beim Startend der Maschine ausgeführt wird.
+Hier ist es erforderlich, den Namen unseres ECS-Clusters in die ECS-Configdatei `/etc/ecs/ecs.config` zu schreiben.
+```
+terraform apply
+```
+Unsere neue EC2-Instanz wird anschließend im AWS EC2 service angezeigt:
+![EC2 > Instances > Instances](_ASSET/screenshot/ec2_instance.png)
+
+Die `public IP` der EC2-Instanz kann hier ausgelesen werden.
+  Mit einem cURL können wir nun die Node.js-Express-Anwendung in unserem Container erreichen:
+```
+curl -v 54.93.205.216:5555/
+```
 
 
 
-# 7. Add user-data field
 
-# 8. Output Queries Values from AWS
+
+
+
+
+
+# 7. Output Queries Values from AWS
 Create file `outputs.tf`. Then apply this new configuration:
 ```
 terraform apply
