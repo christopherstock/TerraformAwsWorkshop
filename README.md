@@ -199,16 +199,51 @@ Unser neu erstellter ECS Cluster wird im ECS Service angezeigt:
 
 ---
 
-## 4. Add ECS Task Definition
+## 4. terraform/ecs_task_definition.tf Add ECS Task Definition
+Create first container task in `terraform/ecs_task_definition.tf`:
 
+```
+resource "aws_ecs_task_definition" "workshop_ecs_task" {
+    family = "workshop_ecs_task"
+    container_definitions = <<EOF
+    [
+        {
+            "name": "node",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5555,
+                    "protocol": "tcp",
+                    "containerPort": 8181
+                }
+            ]
+        }
+    ]
+    EOF
+}
+```
+Angegeben wird die CPU u. RAM usage, das container image sowie das Port mapping.
+Der Host-Port 5555 wird also umgemappt auf den Container-Port 8181 -- 
+genau wie in unserem lokal durchgeführten Docker-Container-Beispiel.
+```
+terraform apply
+```
 
+Danach wird unsere neue Task-Definition im ECS unter **Aufgabendefinitionen** angezeigt:
+![ECS > Aufgabendefinitionen](_ASSET/screenshot/ecs_task_definition.png)
 
-
-
-
-
+---
 
 # 5. Add ECS Service
+
+
+
+
+
+
 
 # 6. Add Network Security Group
 
