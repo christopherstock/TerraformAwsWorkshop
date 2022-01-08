@@ -176,6 +176,7 @@ Die Provisionierung dauert nun auch deutlich länger. Anschließend können wir 
 Unsere Node.js-Anwendung ist damit in einem Container-Image abgelegt und in der ECR registriert.
 
 ---
+
 ## 3. ECS Service
 
 Mit dem AWS-Service **ECS** (Elastic Container Service) können nun Container von den registrierten Images
@@ -253,7 +254,7 @@ Danach wurde der ECS Service erstellt und in unserem Workshop-Cluster `workshop_
 
 ---
 
-# 4. terraform/ecs_security_group.tf - Add Network Security Group
+## 4. terraform/ecs_security_group.tf - Add Network Security Group
 Allow incoming port 5555 on the host machine and propagation to port 5555 in our ECS service.
 ```
 resource "aws_security_group" "workshop_ecs_security_group" {
@@ -285,7 +286,7 @@ VPC > Sicherheit > Sicherheitsgruppen
 
 ---
 
-# 5. IAM instance profile + IAM role
+## 5. IAM instance profile + IAM role
 Im Service AWS IAM (Identity and Access Management) muss ein Profil für unsere EC2-Instanz erstellt werden.
 Hierfür muss auch eine IAM Role erstellt werden. 
 Add files `terraform/iam_instance_profile.tf` and `terraform/iam_role.tf`.
@@ -299,7 +300,7 @@ Das **Instance-Profile** kann nicht über die Web-Oberfläche verwaltet werden s
 
 ---
 
-# 6. terraform/ec2_instance.tf - Add EC2 Instance
+## 6. terraform/ec2_instance.tf - Add EC2 Instance
 Nun haben wir alle Services beisammen die wir zum Betrieb unseres Containers benötigen.
 Da diese auch eine Maschine/Serverinstanz benötigen, erstellen wir als letztes eine EC2 Instanz
 mit Hilfe des AWS Services **EC2** (Elastic Compute Cloud).
@@ -349,7 +350,7 @@ Ausgabe:
 
 ---
 
-# 7. terraform/output.tf - Output Queries Values from AWS
+## 7. terraform/output.tf - Output Queries Values from AWS
 Mit dem `output` Schlüsselwort können nach Abschluß des Deploy-Vorgangs
   Werte ausgegeben werden. Dies bietet sich an, um die erstellt public IP-Adresse auszugeben.
 
@@ -374,6 +375,148 @@ or with other Terraform projects.
 
 ---
 
+## 8. Second Container: nginx
+
+### 8.1. nginx Dockerfile
+Add `Dockerfile-nginx`.
+
+### 8.2. nginx default configuration
+Add `default`:
+```
+server {
+    listen 80 default_server;
+
+    root /var/www/html;
+
+    index index.html index.htm;
+
+    server_name _;
+
+    charset utf-8;
+
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt  { log_not_found off; access_log off; }
+}
+```
+
+### 8.3. new ECR Repository for nginx container
+Add `terraform/ecs_repository_nginx`.
+Der `docker login` Befehl muss hier nicht erneut definiert werden,
+  da er bereits im ECR-Node-Repository ausgeführt wird. Einmaliges Ausführen genügt.
+
+### 8.4. new Task definition
+Erweitern `terraform/ecs_task_definition.tf`.
+Hier wird der zweite Container hinzugefügt und hierfür dessen Image und Port Mapping deklariert:
+```
+resource "aws_ecs_task_definition" "workshop_ecs_task" {
+    family = "workshop_ecs_task"
+    container_definitions = <<EOF
+    [
+        {
+            "name": "node",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5555,
+                    "protocol": "tcp",
+                    "containerPort": 8181
+                }
+            ]
+        },
+        {
+            "name": "nginx",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5556,
+                    "protocol": "tcp",
+                    "containerPort": 80
+                }
+            ]
+        }
+    ]
+    EOF
+}
+```
+
+### 8.5. Öffnen des Ports 5556 für eingehende Requests
+Hierfür muss die `terraform/ecs_security_group.tf` erweitert werden und eingehender Verkehr auf dem Port 5556 explizit erlaubt werden:
+```
+resource "aws_security_group" "workshop_ecs_security_group" {
+    name = "workshop_ecs_security_group"
+
+    ingress {
+        from_port   = 5555 # allow traffic in from port 5555
+        to_port     = 5555
+        protocol    = "tcp" # allow ingoing tcp protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+    }
+
+    ingress {
+        from_port   = 5556 # allow traffic in from port 5556
+        to_port     = 5556
+        protocol    = "tcp" # allow ingoing tcp protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+    }
+
+    egress {
+        from_port   = 0 # allow traffic out on all ports
+        to_port     = 0
+        protocol    = "-1" # allow any outgoing protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic out from all sources
+    }
+}
+```
+
+### 8.6. Erweitern der Ausgabevariablen
+Die Repository-URL des nginx-Docker-Images können wir und ebenso wie der CURL-Befehl zum Requesten der nginx-Applikation
+  zu unseren Ausgabevariablen hinzufügen:
+```
+output "API_HOST" {
+    value = "http://${aws_instance.workshop_ec2_instance.public_ip}"
+}
+
+output "CURL_TEST_COMMAND_NODE" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5555/user'"
+}
+output "CURL_TEST_COMMAND_NGINX" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5556'"
+}
+
+output "PUBLIC_DNS" {
+    value = "https://${aws_instance.workshop_ec2_instance.public_dns}"
+}
+
+output "URL_ECS_REPOSITORY_NODE" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+}
+output "URL_ECS_REPOSITORY_NGINX" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}"
+}
+```
+
+Wenden wir nun die neue Konfiguration an
+```
+terraform apply
+```
+so läuft auch unser zweiter Container und kann via cURL erreicht werden.
+```
+curl -v '3.70.224.181:5556'
+``` 
+Da es sich um eine HTML-Webapplikation bzw. ein Browserspiel handelt, kann die Webseite auch im Browser geöffnet werden:
+```
+http://3.70.224.181:5556
+```
+
+---
+
+## 9. Third Container: PHP
 
 
 
@@ -382,9 +525,6 @@ or with other Terraform projects.
 
 
 
-
-
-# 8. Second Container: nginx
 
 ### Destroy Terraform environment
 This will remove the previously created Docker image and container. 

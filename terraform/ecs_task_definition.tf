@@ -15,6 +15,20 @@ resource "aws_ecs_task_definition" "workshop_ecs_task" {
                     "containerPort": 8181
                 }
             ]
+        },
+        {
+            "name": "nginx",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5556,
+                    "protocol": "tcp",
+                    "containerPort": 80
+                }
+            ]
         }
     ]
     EOF

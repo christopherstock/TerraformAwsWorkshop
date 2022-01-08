@@ -1,0 +1,14 @@
+server {
+    listen 80 default_server;
+
+    root /var/www/html;
+
+    index index.html index.htm;
+
+    server_name _;
+
+    charset utf-8;
+
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt  { log_not_found off; access_log off; }
+}
