@@ -253,8 +253,37 @@ Danach wurde der ECS Service erstellt und in unserem Workshop-Cluster `workshop_
 
 ---
 
-# 4. Add Network Security Group
+# 4. terraform/ecs_security_group.tf - Add Network Security Group
+Allow incoming port 5555 on the host machine and propagation to port 5555 in our ECS service.
+```
+resource "aws_security_group" "workshop_ecs_security_group" {
+    name = "workshop_ecs_security_group"
 
+    ingress {
+        from_port   = 5555 # allow traffic in from port 5555
+        to_port     = 5555
+        protocol    = "tcp" # allow ingoing tcp protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+    }
+
+    egress {
+        from_port   = 0 # allow traffic out on all ports
+        to_port     = 0
+        protocol    = "-1" # allow any outgoing protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic out from all sources
+    }
+}
+```
+Nach dem Durchführen von
+```
+terraform apply
+```
+ist die neue Sicherheitsgruppe erstellt.
+Diese wird im AWS Service VPC (Virtual Private Cloud) erstellt:
+VPC > Sicherheit > Sicherheitsgruppen
+![VPC > Sicherheit > Sicherheitsgruppen](_ASSET/screenshot/ecs_security_group.png)
+
+---
 
 
 
