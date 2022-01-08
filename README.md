@@ -6,6 +6,9 @@ This EC2 instance shall run three Docker container using **AWS ECS**.
 The containers run on different ports of the EC2 instance and contain various web applications in Node.js,
 HTML, JS and PHP.
 
+Als Entwickler möchte ich die Infrastruktur meiner Anwendungen genauso verwalten können wie den Quellcode
+ meiner Anwendungen.
+
 # Software Requirements
 - Terraform 1.1.3
   `terraform`-cli command
@@ -519,24 +522,177 @@ http://3.70.224.181:5556
 
 ## 9. Third Container: php-fpm
 
+### 9.1. PHP Dockerfile
+Add `Dockerfile-PHP`.
 
+### 9.2. nginx Dockerfile
+Ausliefern der PHP Laravel App `application/php/laravel-app.tar.gz`.
+Revise `Dockerfile-nginx`
 
+### 9.3. nginx default configuration
+Erweitern für Support des PHP Präprozessors:
+`default`:
+```
+server {
+    listen 80 default_server;
 
+    root /var/www/html/public;
 
+    index index.html index.htm index.php;
 
+    server_name _;
 
+    charset utf-8;
 
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt  { log_not_found off; access_log off; }
 
+    location / {
+        try_files $uri $uri/ /index.php$is_args$args;
+    }
 
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass php:5556;
+    }
 
+    error_page 404 /index.php;
 
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
 
+### 9.4. php-fpm configs
+Damit der php-fpm funktioniert, werden im Dockerfile noch die beiden Konfigurationsdateien
+  `php-fpm.conf` sowie `www.conf` deployed. Diese müssen dem Rootverzeichnis unseres Workshop-Projekts hinzugefügt werden.
+
+### 9.5. new ECR Repository for php-fpm container
+Add `terraform/ecs_repository_php`.
+
+### 9.6. Erweitern der Task definition
+Erweitern `terraform/ecs_task_definition.tf`.
+Es wird nun der dritte Container für den php-fpm hinzugefügt. Dieser erhält
+  kein Port-Mapping sondern wird mithilfe der Angabe im Feld `links` auf den nginx-Container aufgeschaltet.
+```
+resource "aws_ecs_task_definition" "workshop_ecs_task" {
+    family = "workshop_ecs_task"
+    container_definitions = <<EOF
+    [
+        {
+            "name": "node",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5555,
+                    "protocol": "tcp",
+                    "containerPort": 8181
+                }
+            ]
+        },
+        {
+            "name": "nginx",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}",
+            "essential": true,
+            "links": [
+                "php:php"
+            ],
+            "portMappings": [
+                {
+                    "hostPort": 5556,
+                    "protocol": "tcp",
+                    "containerPort": 80
+                }
+            ]
+        },
+        {
+            "name": "php",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_php.repository_url}",
+            "essential": true
+        }
+    ]
+    EOF
+}
+```
+
+### 9.7. Erweitern der Ausgabevariablen
+Auch die Repository-URL des php-fpm-Docker-Images können wir und ebenso wie der CURL-Befehl zum Requesten der PHP Laravel-Applikation
+  zu unseren Ausgabevariablen hinzufügen:
+```
+output "API_HOST" {
+    value = "http://${aws_instance.workshop_ec2_instance.public_ip}"
+}
+
+output "CURL_TEST_COMMAND_NODE" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5555/user'"
+}
+output "CURL_TEST_COMMAND_PHP" {
+    value = "curl -v --header 'Accept: application/json' 'http://${aws_instance.workshop_ec2_instance.public_ip}:5556/api/v1/countries?name=Spain'"
+}
+
+output "PUBLIC_DNS" {
+    value = "https://${aws_instance.workshop_ec2_instance.public_dns}"
+}
+
+output "URL_ECS_REPOSITORY_NODE" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+}
+output "URL_ECS_REPOSITORY_NGINX" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}"
+}
+output "URL_REPOSITORY_PHP" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_php.repository_url}"
+}
+```
+
+Da sich die Container nun geändert haben, zerstören wir nun explizit die Terraform Konfiguration:
+```
+terraform destroy
+```
+
+Wenden wir die geänderte Konfiguration anschließend an:
+```
+terraform apply
+```
+so können wir einen CURL auf die PHP-Laravel-Applikation durchführen.
+Diese Anwendung liefert uns den Country-Code für das angegebene Land.
+Unterstützt werden als Eingabewerte die Länder `Spain` und `UK`.
+```
+
+```
 
 
 
 ---
 
-# More Terraform Commands
+## 10. Input Variables
+New file `variables.tf` added.
+
+All `.tf` files are loaded by Terraform -- Naming is arbitrary.
+
+We'll extract the region `eu-central-1` to one distinct place now and replace it in all occuring files:
+
+..
+
+### 10.1. Passing Variables via CLI
+This overrides the file values.
+```
+terraform apply -var "instance_name=YetAnotherName"
+```
+
+
+
+---
+
+# More Terraform Commands and Features
 
 ## Auto-Format all Terraform files
 ```
@@ -561,21 +717,6 @@ terraform show
 ## List all Resources in your project's state:
 ```
 terraform state list
-```
-
----
-
-# Further Reading
-
-## Input Variables
-New file `variables.tf` added.
-
-All `.tf` files are loaded by Terraform -- Naming is arbitrary.
-
-## Passing Variables via CLI
-This overrides the file values.
-```
-terraform apply -var "instance_name=YetAnotherName"
 ```
 
 ## Local state file

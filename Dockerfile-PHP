@@ -1,0 +1,39 @@
+FROM ubuntu:20.04
+
+RUN apt-get clean && apt-get -y update && apt-get install -y locales && locale-gen en_US.UTF-8
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US.UTF-8' LC_ALL='en_US.UTF-8'
+
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
+
+# PHP and composer installation is essential for this container.
+# Some of the packages are required for the PHP framework.
+RUN apt-get update \
+
+    && apt-get install -y curl zip unzip git software-properties-common \
+    && add-apt-repository -y ppa:ondrej/php \
+    && apt-get install -y php8.0-fpm php8.0-cli php8.0-mcrypt php8.0-gd php8.0-mysql \
+       php8.0-pgsql php8.0-imap php-memcached php8.0-mbstring php8.0-xml php8.0-curl \
+    && php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer \
+    && mkdir /run/php \
+    && apt-get remove -y --purge software-properties-common \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# This will copy the custom FPM file with proper port and listener
+ADD php-fpm.conf /etc/php/8.0/fpm/php-fpm.conf
+ADD www.conf /etc/php/8.0/fpm/pool.d/www.conf
+
+# deploy the PHP/Laravel app into the webserver root dir
+ADD application/php/laravel-app.tar.gz /var/www/html/
+
+# Set the working directory
+WORKDIR /var/www/html
+
+# This is needed to setup the laravel framework inside this container
+RUN composer update
+RUN mv .env.example .env
+
+# There is no particular requirement for this port but I am just using it.
+EXPOSE 5556
+
+CMD ["php-fpm8.0"]

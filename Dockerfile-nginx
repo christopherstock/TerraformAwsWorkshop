@@ -9,8 +9,8 @@ run apt-get update && apt-get install -y nginx \
 # this is our default conf file for nginx
 ADD default /etc/nginx/sites-available/default
 
-# copy html website into this container
-ADD application/html/mayflower-outrun-1.0.0.tar.gz /var/www/html/
+# deploy the PHP/Laravel app into the webserver root dir
+ADD application/php/laravel-app.tar.gz /var/www/html/
 
 # make container's port 80 (nginx default http port) accessible to the outside
 EXPOSE 80
