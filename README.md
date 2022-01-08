@@ -384,19 +384,20 @@ Add `Dockerfile-nginx`.
 Add `default`:
 ```
 server {
-    listen 80 default_server;
+	listen 80 default_server;
 
-    root /var/www/html;
+	root /var/www/html;
 
-    index index.html index.htm;
+	index index.html index.htm;
 
-    server_name _;
+	server_name _;
 
-    charset utf-8;
+	charset utf-8;
 
-    location = /favicon.ico { log_not_found off; access_log off; }
-    location = /robots.txt  { log_not_found off; access_log off; }
+	location = /favicon.ico { log_not_found off; access_log off; }
+	location = /robots.txt  { log_not_found off; access_log off; }
 }
+
 ```
 
 ### 8.3. new ECR Repository for nginx container
