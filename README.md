@@ -83,7 +83,7 @@ application/js/express-8181.js
 Das Docker Image kann auch lokal gebaut werden. Daraus kann dann ein Container instanziiert werden.
 
 ```
-docker build . --tag express-js-app:14.18
+docker build -f 'Dockerfile-Node' --tag express-js-app:14.18 .
 docker images
 docker run --detach --publish 5555:8181 --tty express-js-app:14.18
 http://localhost:5555/user
