@@ -517,7 +517,7 @@ http://3.70.224.181:5556
 
 ---
 
-## 9. Third Container: PHP
+## 9. Third Container: php-fpm
 
 
 
@@ -527,14 +527,8 @@ http://3.70.224.181:5556
 
 
 
-### Destroy Terraform environment
-This will remove the previously created Docker image and container. 
-```
-terraform destroy
-```
-Confirm with `yes` and `ENTER`.
 
-# 9. Third container: php-fpm
+
 
 
 
