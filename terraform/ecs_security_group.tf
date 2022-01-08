@@ -7,7 +7,6 @@ resource "aws_security_group" "workshop_ecs_security_group" {
         protocol    = "tcp" # allow ingoing tcp protocol
         cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
     }
-
     ingress {
         from_port   = 5556 # allow traffic in from port 5556
         to_port     = 5556

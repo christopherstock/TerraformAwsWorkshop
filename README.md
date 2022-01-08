@@ -653,7 +653,7 @@ output "URL_REPOSITORY_PHP" {
 }
 ```
 
-Da sich die Container nun geändert haben, zerstören wir nun explizit die Terraform Konfiguration:
+Da sich der Inhalt unseres nginx-Containers nun geändert haben, zerstören wir nun explizit die Terraform Konfiguration:
 ```
 terraform destroy
 ```
@@ -666,29 +666,29 @@ so können wir einen CURL auf die PHP-Laravel-Applikation durchführen.
 Diese Anwendung liefert uns den Country-Code für das angegebene Land.
 Unterstützt werden als Eingabewerte die Länder `Spain` und `UK`.
 ```
-
+curl -v --header 'Accept: application/json' 'http://3.124.209.246:5556/api/v1/countries?name=UK'
 ```
-
-
-
----
-
-## 10. Input Variables
-New file `variables.tf` added.
-
-All `.tf` files are loaded by Terraform -- Naming is arbitrary.
-
-We'll extract the region `eu-central-1` to one distinct place now and replace it in all occuring files:
-
-..
-
-### 10.1. Passing Variables via CLI
-This overrides the file values.
+Ausgabe:
 ```
-terraform apply -var "instance_name=YetAnotherName"
+*   Trying 3.124.209.246:5556...
+* Connected to 3.124.209.246 (3.124.209.246) port 5556 (#0)
+> GET /api/v1/countries?name=UK HTTP/1.1
+> Host: 3.124.209.246:5556
+> User-Agent: curl/7.77.0
+> Accept: application/json
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Server: nginx/1.10.3 (Ubuntu)
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Connection: keep-alive
+< Cache-Control: no-cache, private
+< Date: Sat, 08 Jan 2022 14:10:18 GMT
+< 
+* Connection #0 to host 3.124.209.246 left intact
+{"ISO":"GB"}%
 ```
-
-
 
 ---
 
@@ -717,6 +717,21 @@ terraform show
 ## List all Resources in your project's state:
 ```
 terraform state list
+```
+
+## Input Variables
+New file `variables.tf` added.
+
+All `.tf` files are loaded by Terraform -- Naming is arbitrary.
+
+We'll extract the region `eu-central-1` to one distinct place now and replace it in all occuring files:
+
+..
+
+### Passing Variables via CLI
+This overrides the file values.
+```
+terraform apply -var "instance_name=YetAnotherName"
 ```
 
 ## Local state file

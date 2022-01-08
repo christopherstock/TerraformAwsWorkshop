@@ -22,6 +22,9 @@ resource "aws_ecs_task_definition" "workshop_ecs_task" {
             "memory": 128,
             "image": "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}",
             "essential": true,
+            "links": [
+                "php:php"
+            ],
             "portMappings": [
                 {
                     "hostPort": 5556,
@@ -29,6 +32,13 @@ resource "aws_ecs_task_definition" "workshop_ecs_task" {
                     "containerPort": 80
                 }
             ]
+        },
+        {
+            "name": "php",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_php.repository_url}",
+            "essential": true
         }
     ]
     EOF
