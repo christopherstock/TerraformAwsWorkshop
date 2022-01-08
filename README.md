@@ -176,6 +176,8 @@ Die Provisionierung dauert nun auch deutlich länger. Anschließend können wir 
 Unsere Node.js-Anwendung ist damit in einem Container-Image abgelegt und in der ECR registriert.
 
 ---
+## 3. ECS Service
+
 Mit dem AWS-Service **ECS** (Elastic Container Service) können nun Container von den registrierten Images
   instanziiert und gestartet werden.
 
@@ -188,7 +190,7 @@ Der ECS besteht aus drei Komponenten: **clusters**, **services**, and **tasks**:
 
 ---
 
-## 3. terraform/ecs_cluster.tf - Deklaration eines ECS Clusters
+### 3.1. terraform/ecs_cluster.tf - Deklaration eines ECS Clusters
 Create full `terraform/ecs_cluster.tf`.
 
 ```
@@ -199,7 +201,7 @@ Unser neu erstellter ECS Cluster wird im ECS Service angezeigt:
 
 ---
 
-## 4. terraform/ecs_task_definition.tf Add ECS Task Definition
+### 3.2. terraform/ecs_task_definition.tf - Add ECS Task Definition
 Create first container task in `terraform/ecs_task_definition.tf`:
 
 ```
@@ -237,7 +239,21 @@ Danach wird unsere neue Task-Definition im ECS unter **Aufgabendefinitionen** an
 
 ---
 
-# 5. Add ECS Service
+### 3.3. terraform/ecs_service.tf - Add ECS Service
+Nun erstellen wir den ECS Service und geben für den Service die zuletzt deklarierten ECS-Cluster und die
+  deklarierte ECS-Taskdefinition an.
+Add full `terraform/ecs_service.tf`.
+```
+terraform apply
+```
+
+Danach wurde der ECS Service erstellt und in unserem Workshop-Cluster `workshop_ecs_cluster` angelegt.
+  Er kann hier in der Web-Oberfläche eingesehen werden:
+![ECS > Cluster > workshop_ecs_cluster > Services](_ASSET/screenshot/ecs_service.png)
+
+---
+
+# 4. Add Network Security Group
 
 
 
@@ -245,20 +261,18 @@ Danach wird unsere neue Task-Definition im ECS unter **Aufgabendefinitionen** an
 
 
 
-# 6. Add Network Security Group
-
-# 7. Add EC2 Instance
+# 5. Add EC2 Instance
 
 This will describe our AWS EC2 instance:
 ```
 terraform/ec2_instance.tf
 ```
 
-# 8. IAM instance profile + IAM role
+# 6. IAM instance profile + IAM role
 
-# 9. Add user-data field
+# 7. Add user-data field
 
-# 10. Output Queries Values from AWS
+# 8. Output Queries Values from AWS
 Create file `outputs.tf`. Then apply this new configuration:
 ```
 terraform apply
@@ -277,7 +291,7 @@ Terraform outputs help to connect Terraform projects with other parts of your in
 or with other Terraform projects.
 
 
-# 12. Second Container: nginx
+# 9. Second Container: nginx
 
 ### Destroy Terraform environment
 This will remove the previously created Docker image and container. 
@@ -286,7 +300,7 @@ terraform destroy
 ```
 Confirm with `yes` and `ENTER`.
 
-# 13. Third container: php-fpm
+# 10. Third container: php-fpm
 
 
 
