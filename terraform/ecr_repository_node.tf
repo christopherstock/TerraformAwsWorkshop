@@ -2,14 +2,12 @@ resource "aws_ecr_repository" "workshop_ecr_repository_node" {
     name = "workshop_ecr_repository_node"
 
     // login to local Docker registry
-
     provisioner "local-exec" {
         command = "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
         interpreter = ["bash", "-c"]
     }
 
     // build local Docker Image from Node.js-Dockerfile
-
     provisioner "local-exec" {
         command = "docker build -t workshop_ecr_repository_node -f ${path.module}/../Dockerfile-Node ${path.module}/../"
         interpreter = ["bash", "-c"]
