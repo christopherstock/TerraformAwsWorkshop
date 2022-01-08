@@ -299,7 +299,7 @@ Das **Instance-Profile** kann nicht über die Web-Oberfläche verwaltet werden s
 
 ---
 
-# 6. Add EC2 Instance
+# 6. terraform/ec2_instance.tf - Add EC2 Instance
 Nun haben wir alle Services beisammen die wir zum Betrieb unseres Containers benötigen.
 Da diese auch eine Maschine/Serverinstanz benötigen, erstellen wir als letztes eine EC2 Instanz
 mit Hilfe des AWS Services **EC2** (Elastic Compute Cloud).
@@ -322,19 +322,16 @@ Unsere neue EC2-Instanz wird anschließend im AWS EC2 service angezeigt:
 Die `public IP` der EC2-Instanz kann hier ausgelesen werden.
   Mit einem cURL können wir nun die Node.js-Express-Anwendung in unserem Container erreichen:
 ```
-curl -v 54.93.205.216:5555/
+curl -v http://13.40.148.82:5555/user
 ```
 
+---
 
+# 7. terraform/output.tf - Output Queries Values from AWS
+Mit dem `output` Schlüsselwort können nach Abschluß des Deploy-Vorgangs
+  Werte ausgegeben werden. Dies bietet sich an, um die erstellt public IP-Adresse auszugeben.
 
-
-
-
-
-
-
-# 7. Output Queries Values from AWS
-Create file `outputs.tf`. Then apply this new configuration:
+Wir erstellen die Datei `outputs.tf` und wenden diese Erweiterung in unserer Konfiguration an:
 ```
 terraform apply
 ```
@@ -343,7 +340,6 @@ The 2 values are printed after config change was applied:
 instance_id = "i-08b0823abc891faef"
 instance_public_ip = "54.149.193.30"
 ```
-
 The Terraform output command will just query and output the output values:
 ```
 terraform output
@@ -351,8 +347,17 @@ terraform output
 Terraform outputs help to connect Terraform projects with other parts of your infrastructure,
 or with other Terraform projects.
 
+---
 
-# 9. Second Container: nginx
+
+
+
+
+
+
+
+
+# 8. Second Container: nginx
 
 ### Destroy Terraform environment
 This will remove the previously created Docker image and container. 
@@ -361,7 +366,7 @@ terraform destroy
 ```
 Confirm with `yes` and `ENTER`.
 
-# 10. Third container: php-fpm
+# 9. Third container: php-fpm
 
 
 
