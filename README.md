@@ -379,6 +379,7 @@ or with other Terraform projects.
 
 ### 8.1. nginx Dockerfile
 Add `Dockerfile-nginx`.
+Die Anweisung ADD im Dockerfile beinhaltet eine Magic, mit der eine Archivdatei direkt an den Zielort extrahiert wird. 
 
 ### 8.2. nginx default configuration
 Add `default`:

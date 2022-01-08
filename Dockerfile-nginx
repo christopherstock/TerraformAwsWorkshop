@@ -10,7 +10,7 @@ run apt-get update && apt-get install -y nginx \
 ADD default /etc/nginx/sites-available/default
 
 # copy html website into this container
-COPY application/html/* /var/www/html/
+ADD application/html/mayflower-outrun-1.0.0.tar.gz /var/www/html/
 
 # make container's port 80 (nginx default http port) accessible to the outside
 EXPOSE 80
