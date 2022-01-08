@@ -324,6 +324,28 @@ Die `public IP` der EC2-Instanz kann hier ausgelesen werden.
 ```
 curl -v http://13.40.148.82:5555/user
 ```
+Ausgabe:
+```
+*   Trying 3.70.224.181:5555...
+* Connected to 3.70.224.181 (3.70.224.181) port 5555 (#0)
+> GET /user HTTP/1.1
+> Host: 3.70.224.181:5555
+> User-Agent: curl/7.77.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 135
+< ETag: W/"87-gHZz+1+n7pHvd2ovXSzGNYJ6RNM"
+< Date: Sat, 08 Jan 2022 11:17:44 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+* Connection #0 to host 3.70.224.181 left intact
+[{"name":"John Smith","username":"jsmith"},{"name":"Jane Williams","username":"jwilliams"},{"name":"Robert Brown","username":"rbrown"}]%      
+```
 
 ---
 
@@ -335,12 +357,15 @@ Wir erstellen die Datei `outputs.tf` und wenden diese Erweiterung in unserer Kon
 ```
 terraform apply
 ```
-The 2 values are printed after config change was applied:
+Hier können wir uns direkt die vergebene public-IP anzeigen lassen und auch direkt
+  das cURL-Testkommando ausgeben.
 ```
-instance_id = "i-08b0823abc891faef"
-instance_public_ip = "54.149.193.30"
+API_HOST = "http://3.70.224.181"
+CURL_TEST_COMMAND_NODE = "curl -v 'http://3.70.224.181:5555/user'"
+...
 ```
-The Terraform output command will just query and output the output values:
+Das `terraform output` Kommando kann auch unabhängig ausgeführt werden und gibt alle definierten
+  Ausgabe-Variablen aus:
 ```
 terraform output
 ``` 
@@ -348,6 +373,8 @@ Terraform outputs help to connect Terraform projects with other parts of your in
 or with other Terraform projects.
 
 ---
+
+
 
 
 
