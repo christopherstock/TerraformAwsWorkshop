@@ -3,7 +3,7 @@ resource "aws_ecr_repository" "workshop_ecr_repository_node" {
 
     // login to local Docker registry
     provisioner "local-exec" {
-        command = "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+        command = "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
         interpreter = ["bash", "-c"]
     }
 
