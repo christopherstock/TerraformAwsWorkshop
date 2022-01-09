@@ -1,0 +1,1503 @@
+<p class="auto-cursor-target">
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="61ed87c9-ff1d-4d34-bad3-276ee2c2cf0e" ac:name="warning" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Der Workshop ist technisch vollständig, die Prosatexte befindet sich aber noch im Doing.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>
+  <span style="letter-spacing: 0.0px;">
+    <ac:image ac:align="right" ac:thumbnail="true" ac:width="220">
+      <ri:attachment ri:filename="logo-terraform.png"/>
+    </ac:image>Als Entwickler möchte ich die für meine Anwendung erforderliche Infrastruktur genauso verwalten und ausliefern können wie meine Anwendung selbst. </span>
+  <span style="letter-spacing: 0.0px;">Somit ist es konsequent, die Deklaration der benötigten Infrastruktur meiner Anwendung genauso als ein Artefakt zu behandeln wie den Quellcode der Anwendung oder deren Build Artefakte.</span>
+</p>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="85">
+    <ri:attachment ri:filename="logo-aws.png"/>
+  </ac:image>
+  <strong>Terraform</strong> ist ein <strong>Infrastructure as Code (IaC)</strong> Tool<span style="color: rgb(32,33,36);"> zum Verwalten von Cloud Infrastruktur. </span>In diesem Workshop erstellen wir eine Cloud Infrastruktur mit <strong>Terraform</strong> und dem Cloud Provider <strong>AWS</strong> (Amazon Web Services). Wir erstellen dabei drei verschiedene Web-Applikationen in Form von drei Docker Containern, deployen diese in die <strong>AWS Cloud</strong> und machen die Web-Applikationen unter einer <strong>öffentlichen IP</strong>-Adresse zugänglich.<br/>
+  <br/>
+  <br/>
+</p>
+<hr/>
+<h2>Anforderungen</h2>
+<p>Zur Durchführung des Workshops müssen drei Programme lokal installiert sein. Zudem muss ein aktiver AWS-Benutzeraccount vorhanden sein und für diesen eine Authentifizierung auf der lokalen Maschine eingerichtet sein. Die folgenden vier Voraussetzungen müssen zur Durchführung des Workshops erfüllt sein:</p>
+<h3>1. Terraform</h3>
+<p>Ein Infrastructure as Code (IaC) Tool<span style="color: rgb(32,33,36);"> zum Verwalten von Cloud Infrastruktur. Die <a href="https://learn.hashicorp.com/tutorials/terraform/install-cli">Installation</a> von Terraform war erfolgreich wenn der folgende Befehl eine entsprechende Ausgabe liefert:</span>
+</p>
+<ac:structured-macro ac:macro-id="d373959a-907a-4e0e-bbe2-8a8f0dab1deb" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform --version
+Terraform v1.1.3
+on darwin_amd64]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>2. Docker</h3>
+<p>Docker ist ein Containersystem das mit Prozessisolation arbeitet. Docker muss lokal <a href="https://docs.docker.com/get-docker/">installiert</a> und der Docker Daemon <a href="https://docs.docker.com/config/daemon/">gestartet</a> sein.<br/>Mit dem folgenden Befehl kann dies überprüft werden:</p>
+<ac:structured-macro ac:macro-id="0ef3cf14-c291-4228-a3d2-54532c8987a8" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% docker info
+Client:
+ Context:    default
+ Debug Mode: false
+ Plugins:
+  buildx: Docker Buildx (Docker Inc., v0.7.1)
+  compose: Docker Compose (Docker Inc., v2.2.1)
+  scan: Docker Scan (Docker Inc., v0.14.0)
+...]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>3. AWS CLI-Client</h3>
+<p>Der AWS CLI-Client ist ein Kommandozeilen-Tool zur Verwaltung von AWS Services in der AWS Cloud.<br/>Die erfolgreiche <a href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html">Installation</a> des AWS CLI-Clients kann mit dem folgenden Befehl getestet werden:</p>
+<ac:structured-macro ac:macro-id="cc43c011-687d-4bd5-89c1-962636b72557" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% aws --version
+aws-cli/2.2.13 Python/3.8.8 Darwin/21.1.0 exe/x86_64 prompt/off]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>4. Setup der AWS Credentials</h3>
+<p>Zur Durchführung des Workshops benötigen Sie einen aktiven AWS-Account.<br/>Für die <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html">Authentifizierung mit der AWS Cloud</a> müssen serverseitig Zugangsdaten erstellt und danach auf der lokalen Maschine hinterlegt werden.<br/>Die beiden Schritte werden hier kurz vorgestellt:</p>
+<h4>4.1. Serverseitigen Zugriffsschlüssel erstellen</h4>
+<p>Die Zugangsdaten können im <a href="https://console.aws.amazon.com/iamv2/home#/users">Benutzerbereich</a> der Weboberfläche erstellt werden:<br/>
+  <a href="https://console.aws.amazon.com/iamv2/home#/users">Identity and Access Management (IAM) &gt; Benutzer &gt; ihr.benutzername &gt; Sicherheitsanmeldeinformationen &gt; Zugriffsschlüssel erstellen</a>
+</p>
+<p>Notieren Sie sich nach dem Erstellen des Zugriffsschlüssels die Werte für "<strong>Zugriffsschlüssel-ID</strong>" und "<strong>Geheimer Zugriffsschlüssel</strong>".</p>
+<h4>4.2. Clientseitige Zugangsdaten hinterlegen</h4>
+<p>Diese beiden Werte hinterlegen Sie nun in die folgende Datei unterhalb Ihres Benutzerverzeichnisses (Linux &amp; macOS):</p>
+<ac:structured-macro ac:macro-id="ebea1671-ae53-4f51-ab68-100d4b1e2309" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">text</ac:parameter>
+  <ac:parameter ac:name="title">~/.aws/credentials</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[[default]
+aws_access_key_id=AKIAYZ5I2LCDUYH6VXXX
+aws_secret_access_key=NCO0QKkmaSHoqWiPEOnd8uspyXgI2CgBVTjfxXXX]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Unter Windows legen Sie die Datei unter <span style="color: rgb(255,102,0);">C:\Users\username\.aws\credentials</span> ab.</p>
+<h4>Testen der Zugangsberechtigung zur AWS Cloud</h4>
+<p>Mit dem folgenden Befehl können Sie überprüfen, ob die lokal abgelegten Zugangsdaten korrekt sind. Im Erfolgsfall wird ein JSON mit benutzerspezifischen Werten ausgegeben:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="a08758f9-fbf8-41df-a047-885c0b51eafd" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% aws sts get-caller-identity
+{
+    "UserId": "AIDAISBG5MCYYU3ESLXXX",
+    "Account": "605407565XXX",
+    "Arn": "arn:aws:iam::605407565XXX:user/christopher.stock"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>Optional: <span style="color: rgb(102,14,122);">Terraform</span> Plugin für IntelliJ / VS Code</h3>
+<p>Das Plugin erweitert den Code Editor um Syntaxunterstützung für Terraform-Dateien.</p>
+<ul>
+  <li>
+    <a href="https://aws.amazon.com/de/intellij/">IntelliJ Terraform Plugin</a>
+  </li>
+  <li>
+    <a href="https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform" style="letter-spacing: 0.0px;">VS Code Terraform Plugin</a>
+  </li>
+</ul>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<hr/>
+<h1>
+  <span style="color: rgb(0,0,0);">Vorbereitung und Big Picture</span>
+</h1>
+<p>
+  <span style="color: rgb(0,0,0);">
+    <ac:image ac:align="right" ac:thumbnail="true" ac:width="107">
+      <ri:attachment ri:filename="logo-docker.png"/>
+    </ac:image>
+    <ac:image ac:align="right" ac:thumbnail="true" ac:width="150">
+      <ri:attachment ri:filename="logo-node.js.png"/>
+    </ac:image>Wir wollen eine <strong>Node.js</strong>-Anwendung in einen <strong>Docker-Container</strong> packen und diesen in die AWS Cloud deployen. Anschließend soll uns die Node.js-Anwendung auf einer <strong>öffentlichen IP</strong> zur Verfügung stehen. Um den Docker-Container vorab zu erstellen und dessen Betrieb lokal mit Docker zu testen und so auch die Funktionsweise von Docker und von unserer Node.js-Anwendung kennenzulernen, wollen wir den Docker-Container zunächst lokal definieren, instanziieren und betreiben.</span>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">1. Neuer Projektordner</span>
+</h3>
+<p>
+  <span style="color: rgb(0,0,0);">Beginnen wir mit der Erstellung eines neuen, leeren Projektordners. Diesen können Sie an einer beliebigen Stelle ihres Dateisystems erstellen. Alle Pfadangaben dieses Workshops verstehen sich relativ zu diesem Projektordner.</span>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">2. Node.js-Applikation lokal ablegen</span>
+</h3>
+<p>Bei der Node.js Anwendung handelt es sich um eine minimale Express.js-Serveranwendung. Wird die JavaScript-Datei mit dem node-Befehl gestartet, so etabliert sie einen <strong>Websocket</strong> auf Port <strong>8181</strong> und reagiert dort auf eingehende Requests. Die JavaScript-Datei ist eigenständig lauffähig da sie alle erforderlichen Bibliotheken mitliefert, primär die Express.js-Bibliothek. Dies erklärt die verhältnismäßig hohe Dateigröße. Bitte laden Sie die Datei hier herunter und legen Sie sie im Unterverzeichnis <span style="color: rgb(255,102,0);">application/js</span> Ihres Projektordners ab:</p>
+<ul>
+  <li>
+    <u>
+      <span style="color: rgb(255,102,0);">
+        <ac:link>
+          <ri:attachment ri:filename="express-8181.js"/>
+          <ac:plain-text-link-body><![CDATA[application/js/express-8181.js]]></ac:plain-text-link-body>
+        </ac:link>
+      </span>
+    </u>
+  </li>
+</ul>
+<h3>
+  <span style="color: rgb(0,0,0);">3. Dockerfile für den Betrieb der Node.js-Applikation</span>
+</h3>
+<p>
+  <span style="color: rgb(0,0,0);">Das Dockerfile für den Betrieb unserer Node.js-Anwendung legen wir in unserem Projektordner unter <span style="color: rgb(255,102,0);">Dockerfile-Node</span> ab. Es basiert auf dem Docker-Image für <strong>Node 14.x</strong>. Beim Bauen des Docker-Images wird der gesamte Unterordner <span style="color: rgb(255,102,0);">application/js</span> in den Container kopiert und der Container-Port <strong>8181</strong> exponiert. Danach wird die Anwendung mit dem Node-Befehl gestartet, sodass sie sich auf den Containerport <strong>8181</strong> etabliert und dort auf eingehende Requests wartet.</span>
+</p>
+<ac:structured-macro ac:macro-id="51b2d806-0abd-4ecc-9ade-0b71391c44a0" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">text</ac:parameter>
+  <ac:parameter ac:name="title">Dockerfile-Node</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[# base image for this container
+FROM node:14
+
+# copy javascript source directory into the container
+COPY application/js/* application/js/
+
+# make container's port 8181 accessible to the outside
+EXPOSE 8181
+
+# run the app bundle with node
+CMD [ "node", "application/js/express-8181.js" ]]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">4. Docker Container mit </span>
+  <span style="color: rgb(0,0,0);">Node.js-Anwendung instanziieren und </span>
+  <span style="color: rgb(0,0,0);">lokal starten</span>
+</h3>
+<p>
+  <span style="color: rgb(0,0,0);">Aus dem <strong>Dockerfile</strong> können wir nun ein lokales <strong>Docker Image</strong> erstellen:</span>
+</p>
+<ac:structured-macro ac:macro-id="6948a62e-5961-4fb7-8de3-4f4596c89241" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% docker build -f 'Dockerfile-Node' --tag express-js-app:14.18 .                ]]></ac:plain-text-body>
+</ac:structured-macro>
+<p class="auto-cursor-target">
+  <span style="color: rgb(0,0,0);">Daraus können wir dann einen neuen Container instanziieren und starten. Beim erfolgreichen Durchlauf wird der Container im Hintergrund gestartet und dessen Container-ID auf der Kommandozeile ausgegeben:</span>
+</p>
+<ac:structured-macro ac:macro-id="c4c5c498-f0e7-4e04-b1ca-49afc74d05a8" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% docker run --detach --publish 5555:8181 --tty express-js-app:14.18
+93e62c5bbb6e6a5339dd8f4ca88c61e042c87c1d52d779c61e2fa4879fa9d865]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(0,0,0);">Der interne Container-Port <strong>8181</strong> wurde im letzten Befehl durch die Angabe der Option <span style="color: rgb(255,102,0);">--publish</span> auf den Port <strong>5555</strong> unseres Host-Betriebssystems gemappt. </span>Nachdem der Container gestartet wurde, steht die Node.js-Anwendung nun also auf Port <strong>5555</strong> unseres lokalen Hostbetriebssystems zur Verfügung. Mit einem cURL können wir zwei Routen der Anwendung requesten.</p>
+<ac:structured-macro ac:macro-id="08625cee-68d0-4c18-81a7-17b9a7e597dc" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% curl http://localhost:5555/
+Hello World. This is the result from the base route. Port 8181
+% curl http://localhost:5555/user
+[{"name":"John Smith","username":"jsmith"},{"name":"Jane Williams","username":"jwilliams"},{"name":"Robert Brown","username":"rbrown"}]]]></ac:plain-text-body>
+</ac:structured-macro>
+<p class="auto-cursor-target">Alternativ können wir die beiden URLs auch im Browser testen:</p>
+<p class="auto-cursor-target">
+  <ac:image ac:border="true" ac:height="106" ac:width="400">
+    <ri:attachment ri:filename="screenshot-localhost-5555.png"/>
+  </ac:image>
+</p>
+<p class="auto-cursor-target">
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="92d64c58-1169-4163-a1dd-6a02d8f635c5" ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Herzlichen Glückwunsch! Sie haben den Docker-Container und die darin betriebene Node.js-Anwendung nun erfolgreich lokal gebaut und gestartet und haben somit die Express.js-Anwendung auf der <strong>lokalen Hostmaschine</strong> unter dem Port <strong>5555</strong> verfügbar gemacht.</p>
+    <p>Das erste große Ziel unseres Workshops ist es nun, diesen Docker-Container auf den AWS Server zu pushen und die Node.js Anwendung so auf einer <strong>öffentlichen IP</strong> unter Port <strong>5555</strong> verfügbar zu machen.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h1>
+  <span style="color: rgb(0,0,0);">Neue Terraform Konfiguration</span>
+</h1>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="250">
+    <ri:attachment ri:filename="logo-terraform.png"/>
+  </ac:image>Eine <strong>Terraform Konfiguration</strong> bezeichnet einen Satz an Terraform-Dateien, mit denen eine <strong>Cloud Infrastruktur</strong> beschrieben wird. Die von Terraform verwendete Syntax ist dabei <strong>deklarativ</strong> und beschreibt den<span style="letter-spacing: 0.0px;"> gewünschten Endzustand unserer Cloud Infrastruktur. Das bedeutet dass sie </span>
+  <span style="letter-spacing: 0.0px;">
+    <strong>keine</strong> Schritt für Schritt Anweisungen beinhaltet.</span>
+</p>
+<p>Alle Terraform Dateien haben die Dateinamenerweiterung <span style="color: rgb(255,102,0);">.tf</span>. Beim Ausführen eines Terraform-Befehls werden <strong>alle</strong> Terraform-Dateien im aktuellen Verzeichnis eingelesen. Somit ist die Anzahl und die Benamung aller Terraform-Dateien gänzlich dem Entwickler überlassen.</p>
+<p>Wir wollen unsere Terraform Konfiguration in dem Unterordner <span style="color: rgb(255,102,0);">terraform</span> unseres Projektordners ablegen. Alle kommenden Terraform-Befehle <strong>müssen </strong>somit auch aus diesem Unterverzeichnis heraus aufgerufen werden. Sie können nach dem Anlegen des neuen Unterverzeichnisses dieses also auch gleich betreten:</p>
+<ac:structured-macro ac:macro-id="03670db4-d00a-4057-ba8b-e33158b35bc8" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% mkdir terraform
+% cd terraform]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">1. Deklaration des Cloud Providers</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="85">
+    <ri:attachment ri:filename="logo-aws.png"/>
+  </ac:image>Wir beginnen mit der Deklaration des Cloud Providers und definieren hier "<span style="color: rgb(255,102,0);">aws</span>" als Provider. Eine obligatorische Angabe für diesen Provider ist die Region, die wir auf "<span style="color: rgb(255,102,0);">eu-central-1</span>" festlegen.<br/>Somit verwenden wir AWS-Server mit Standort Frankfurt am Main.</p>
+<ac:structured-macro ac:macro-id="062e5896-f5e2-4bd5-ab86-6dc58c168be0" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/provider.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[provider "aws" {
+    region = "eu-central-1"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Mit Hilfe des Befehls <span style="color: rgb(255,102,0);">terraform init</span> werden alle von Terraform benötigten Pakete für diesen Provider geladen. Diesen Befehl führen wir nun einmalig aus:</p>
+<ac:structured-macro ac:macro-id="8541f14e-acc9-4435-b4af-7fa13c749913" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform init]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Terraform hat daraufhin die Lockdatei <span style="color: rgb(255,102,0);">.terraform.lock.hcl</span> angelegt, mit deren Hilfe Terraform Änderungen in der Installation der von Terraform benötigten Pakete nachverfolgt.</p>
+<p>Anschließend können wir unsere neue Cloud Infrastruktur mit dem Befehl <span style="color: rgb(255,102,0);">terraform apply</span> erstellen:</p>
+<ac:structured-macro ac:macro-id="953fa02e-4ac0-48d9-8033-f20e1e571d34" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Damit wird unsere aktuelle Terraform Konfiguration auf den AWS Server angewendet. Da wir bisher aber noch gar keine <strong>Ressourcen</strong> deklariert haben, wurden in unserer AWS-Cloud auch noch keine Ressourcen erstellt. Als Ressource wird jedes Objekt einer Cloud Infrastruktur bezeichnet. In den folgenden fünf Schritten werden wir verschiedene Ressourcen in diversen AWS-Services deklarieren. </p>
+<p>Terraform hat nun bereits das lokalen Statefile <span style="color: rgb(255,102,0);">terraform.tfstate</span> erstellt, indem der Status der zuletzt angewandte Konfiguration festgehalten wurde. Das Statefile fungiert als Source of Truth und ermöglicht Terraform den Abgleich von Änderungen an der aktuellen Konfiguration.</p>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">2. Deklaration des ECR Repositories</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="75">
+    <ri:attachment ri:filename="icon-aws-ecr.png"/>
+  </ac:image>Mit dem AWS Service <strong>ECR (Elastic Container Registry)</strong> können Docker Container-Images auf den AWS-Server gepusht und verwaltet werden.</p>
+<p>Um unseren Node.js-Container deployen zu können deklarieren wir nun ein neues <strong>ECR Repository</strong>. Dieses bleibt vorerst leer – wir können unseren Docker-Container zu einem späteren Zeitpunkt dort hineinpushen. Erstellen Sie folgende Datei:</p>
+<ac:structured-macro ac:macro-id="7a05ab1d-0ef9-4649-87da-9a4e30a8923a" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecr_repository_node.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecr_repository" "workshop_ecr_repository_node" {
+    name = "workshop_ecr_repository_node"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Für das neue ECR Repository wird die ID und der Name <span style="color: rgb(128,128,128);">
+    <span style="color: rgb(255,102,0);">workshop_ecr_repository_node</span>
+  </span> vergeben.</p>
+<p>Diese Änderungen wenden wir nun mit <span style="color: rgb(255,102,0);">terraform apply</span> an. Terraform zeigt nun die geplanten Änderungen an der Konfiguration als Diff an. Die Durchführung dieser Änderungen muss immer explizit durch die Eingabe von "<span style="color: rgb(255,102,0);">yes</span>" bestätigt werden.<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="1041b7b0-3e45-4c4f-aee1-0a7702191b1b" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Das neu erstellte Container-Repository <span style="color: rgb(128,128,128);">
+    <span style="color: rgb(255,102,0);">workshop_ecr_repository_node </span>
+  </span>wird in der AWS-Weboberfläche unter <strong>ECR &gt; Repositories</strong> angezeigt:</p>
+<p>
+  <ac:image ac:border="true" ac:height="306" ac:width="700">
+    <ri:attachment ri:filename="screenshot-ecr-repositories.png"/>
+  </ac:image>
+</p>
+<p>Klicken wir auf das Repository in der Web-Oberfläche, so kann man über den Button "<strong>View Push Commands</strong>"<span style="color: rgb(0,0,128);"> </span>die erforderlichen CLI-Befehle einsehen, mit denen ein Docker Container-Image lokal gebaut und in dieses ECR Repository gepusht werden kann.</p>
+<p>Diese Befehle führen wir jetzt aber nicht manuell aus, sondern wir verbauen sie in unsere Terraform-Deklaration für unser ECR Repository. Durch Verwendung der Variable ${aws_ecr_repository.workshop_ecr_repository_node.repository_url} setzen wir dabei variabel die URL des ECR Repositories ein, da dieser Wert erst nach dem Erstellen des ECR Repositories zur Verfügung steht:</p>
+<ac:structured-macro ac:macro-id="60d9dd08-d50a-483a-a5be-9fa19fdf9f09" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecr_repository_node.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecr_repository" "workshop_ecr_repository_node" {
+    name = "workshop_ecr_repository_node"
+
+    // login to local Docker registry
+    provisioner "local-exec" {
+        command = "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+        interpreter = ["bash", "-c"]
+    }
+
+    // build local Docker Image from Node.js-Dockerfile
+    provisioner "local-exec" {
+        command = "docker build -t workshop_ecr_repository_node -f ${path.module}/../Dockerfile-Node ${path.module}/../"
+        interpreter = ["bash", "-c"]
+    }
+
+    // tag Docker Image
+    provisioner "local-exec" {
+        command = "docker tag workshop_ecr_repository_node:latest ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}:latest"
+        interpreter = ["bash", "-c"]
+    }
+
+    // push Docker Image to ECR
+    provisioner "local-exec" {
+        command = "docker push ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}:latest"
+        interpreter = ["bash", "-c"]
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>Da diese lokal ausgeführten Befehl lediglich bei der Provisionierung, also dem initialen Setup des Repositories ausgeführt werden,<br/>müssen wir die Terraform-Konfiguration nun explizit zerstören und neu erstellen. Führen Sie beide Befehle aus und bestätigen Sie deren Anwendung mit "<span style="color: rgb(255,102,0);">yes</span>"<span style="color: rgb(128,128,128);">:</span>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="4a6d27cf-8795-42dc-ab14-b5592b719093" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform destroy
+% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Die Provisionierung dauert nun auch deutlich länger. Anschließend können wir unser neu erstelltes <strong>Node.js-Container Image</strong> in unserem ECR Repository sehen. Unsere Node.js-Anwendung ist damit in einem Container Image abgelegt und in der ECR registriert.</p>
+<p>
+  <ac:image ac:border="true" ac:height="306" ac:width="700">
+    <ri:attachment ri:filename="screenshot-ecr-repository-node.png"/>
+  </ac:image>
+  <br/>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">3. Deklaration des ECS Services</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="75">
+    <ri:attachment ri:filename="icon-aws-ecs.png"/>
+  </ac:image>Mit dem AWS-Service <strong>ECS<span style="color: rgb(0,0,128);"> </span>(Elastic Container Service)</strong> können nun Container von den in dem Repository registrierten Container Image instanziiert und gestartet werden.<br/>
+  <br/>The ECS is a fully managed container orchestration service for running containers.<br/>
+  <br/>Der ECS besteht aus drei Komponenten: <span style="color: rgb(0,0,128);">**</span>clusters<span style="color: rgb(0,0,128);">**</span>, <span style="color: rgb(0,0,128);">**</span>services<span style="color: rgb(0,0,128);">**</span>, and <span style="color: rgb(0,0,128);">**</span>tasks<span style="color: rgb(0,0,128);">**</span>:<br/>
+  <span style="color: rgb(0,0,128);">- **</span>Tasks<span style="color: rgb(0,0,128);">** </span>are JSON files that describe how a container should be run. Beispielsweise werden die Ports und Container Images angegeben. <br/>
+  <span style="color: rgb(0,0,128);">- </span>A <span style="color: rgb(0,0,128);">**</span>service<span style="color: rgb(0,0,128);">** </span>simply runs a specified number of tasks and restarts/kills them as needed.<br/>
+  <span style="color: rgb(0,0,128);">- </span>A <span style="color: rgb(0,0,128);">**</span>cluster<span style="color: rgb(0,0,128);">** </span>is a logical grouping of <span style="color: rgb(0,0,128);">**</span>services<span style="color: rgb(0,0,128);">** </span>and <span style="color: rgb(0,0,128);">**</span>tasks<span style="color: rgb(0,0,128);">**</span>.<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">3.1. Deklaration eines ECS Clusters</span>
+</h3>
+<p>
+  <br/>Create full `terraform/ecs_cluster.tf`.<br/>
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="48ea83a3-970f-4cca-ab55-32f67ed82666" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_cluster.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecs_cluster" "workshop_ecs_cluster" {
+    name = "workshop_ecs_cluster"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Die neue Erweiterung an unserer Terraform Konfiguration wenden wir umgehend an:</p>
+<ac:structured-macro ac:macro-id="0a52114a-c22e-4ab4-b858-587b2a05c91f" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Unser neu erstellter ECS Cluster wird im ECS Service angezeigt:<br/>
+  <span>![ECS &gt; Cluster](_ASSET/screenshot/ecs_cluster.png)</span>
+  <br/>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">3.2. Deklaration einer ECS Task Definition</span>
+</h3>
+<p>Create first container task in <span style="color: rgb(128,128,128);">`terraform/ecs_task_definition.tf`</span>:</p>
+<ac:structured-macro ac:macro-id="f3492d29-6152-444f-b259-3faf6ac4c248" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_task_definition.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecs_task_definition" "workshop_ecs_task" {
+    family = "workshop_ecs_task"
+    container_definitions = <<EOF
+    [
+        {
+            "name": "node",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5555,
+                    "protocol": "tcp",
+                    "containerPort": 8181
+                }
+            ]
+        }
+    ]
+EOF
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Angegeben wird die CPU u. RAM usage, das container image sowie das Port mapping.<br/>Der Host-Port <strong>5555</strong> wird also umgemappt auf den Container-Port <strong>8181</strong> -- <br/>genau wie in unserem lokal durchgeführten Docker-Container-Beispiel.<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="a0eab175-fa28-4189-862b-78d8511fbbb3" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Danach wird unsere neue Task-Definition im ECS unter <span style="color: rgb(0,0,128);">**</span>Aufgabendefinitionen<span style="color: rgb(0,0,128);">** </span>angezeigt:<br/>
+  <span>![ECS &gt; Aufgabendefinitionen](_ASSET/screenshot/ecs_task_definition.png)</span>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">3.3. Deklaration eines ECS Services</span>
+</h3>
+<p>Add ECS Service<br/>Nun erstellen wir den ECS Service und geben für den Service die zuletzt deklarierten ECS-Cluster und die<br/>deklarierte ECS-Taskdefinition an.<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="b56c0577-5bad-4526-9ed6-2aa12c9e11e4" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_service.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecs_service" "workshop_ecs_service" {
+    name            = "workshop_ecs_service"                               # Naming our first service
+    cluster         = "${aws_ecs_cluster.workshop_ecs_cluster.id}"         # Referencing our created Cluster
+    task_definition = "${aws_ecs_task_definition.workshop_ecs_task.arn}"   # Referencing the task our service will spin up
+    desired_count   = 1                                                    # number of task definitions to run
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>Auch diese Erweiterung an unserer Terraform Konfiguration wenden wir anschließend an:</p>
+<ac:structured-macro ac:macro-id="14c37619-968a-45d6-8783-ae449b9d69d5" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Danach wurde der ECS Service erstellt und in unserem Workshop-Cluster <span style="color: rgb(128,128,128);">`workshop_ecs_cluster` </span>angelegt.<br/>Er kann hier in der Web-Oberfläche eingesehen werden:<br/>
+  <span>![ECS &gt; Cluster &gt; workshop_ecs_cluster &gt; Services](_ASSET/screenshot/ecs_service.png)</span>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">4. Deklaration der ECS Security Group</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="75">
+    <ri:attachment ri:filename="icon-aws-vpc.png"/>
+  </ac:image>Der AWS Service <strong>VPC (Virtual Private Cloud)</strong> verwaltet Sicherheitsgruppen zur Verwaltung von Zugangs und Abgangskontrolle.</p>
+<p>Hinzufügen einer Network Security Group<br/>Allow incoming port 5555 on the host machine and propagation to port 5555 in our ECS service.<br/>Zugang und Abgang zu unserer EC2-Instanz kontrolliert bzw. eingeschränkt werden:<br/>
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="2387c1af-f904-46ff-99cc-46a780fbb395" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_security_group.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_security_group" "workshop_ecs_security_group" {
+    name = "workshop_ecs_security_group"
+
+    ingress {
+        from_port = 5555 # allow traffic in from port 5555
+        to_port = 5555
+        protocol = "tcp" # allow ingoing tcp protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+    }
+
+    egress {
+        from_port = 0 # allow traffic out on all ports
+        to_port = 0
+        protocol = "-1" # allow any outgoing protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic out from all sources
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Nach dem Anwender der Konfiguration<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="202055c9-815b-4ec4-aa4d-cb2db0cbd2a7" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>ist die neue Sicherheitsgruppe erstellt.</p>
+<p>Diese wird in der AWS-Weboverfläche unter <strong>VPC &gt; Sicherheit &gt; Sicherheitsgruppen</strong> angezeigt:<br/>
+  <span>![VPC &gt; Sicherheit &gt; Sicherheitsgruppen](_ASSET/screenshot/ecs_security_group.png)</span>
+  <br/>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">5. Deklaration des IAM Instance Profiles und der IAM Role</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="75">
+    <ri:attachment ri:filename="icon-aws-iam.png"/>
+  </ac:image>Im AWS-Service <strong>IAM (Identity and Access Management)</strong> muss ein Profil und eine Rolle für den Zugriff auf unsere Servermaschine erstellt werden.<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="00f80ad8-3f72-45c0-9621-07b2348999ba" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/iam_instance_profile.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_iam_instance_profile" "workshop_iam_instance_profile" {
+    name = "workshop_iam_instance_profile"
+    path = "/"
+    role = "${aws_iam_role.workshop_iam_role.name}"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p class="auto-cursor-target">Zudem wird die IAM Role erstellt und zu unserer Konfiguration hinzugefügt:</p>
+<ac:structured-macro ac:macro-id="75bd7883-83f8-4525-9933-29acbb182fb7" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/iam_role.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_iam_role" "workshop_iam_role" {
+    name = "workshop_iam_role"
+    path = "/"
+    assume_role_policy = "${data.aws_iam_policy_document.workshop_iam_policy_document.json}"
+}
+
+data "aws_iam_policy_document" "workshop_iam_policy_document" {
+    statement {
+        actions = ["sts:AssumeRole"]
+        principals {
+            type = "Service"
+            identifiers = ["ec2.amazonaws.com"]
+        }
+    }
+}
+
+resource "aws_iam_role_policy_attachment" "workshop_iam_role_policy_attachment" {
+    role = "${aws_iam_role.workshop_iam_role.name}"
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<p>Die Erweiterung unserer Konfiguration wenden wir danach wieder an:</p>
+<ac:structured-macro ac:macro-id="a1c79060-62cc-4603-a91c-de5ef18648da" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Anschließend wird die neu erstellte IAM Role in der Weboberfläche angezeigt:<br/>
+  <span>![IAM &gt; Zugriffsverwaltung &gt; Rollen](_ASSET/screenshot/iam_role.png)</span>
+  <br/>
+  <br/>Das <span style="color: rgb(0,0,128);">**</span>Instance-Profile<span style="color: rgb(0,0,128);">** </span>kann nicht über die Web-Oberfläche verwaltet werden sondern lediglich über Terraform bzw. über den AWS CLI-Client.<br/>
+  <span style="color: rgb(128,128,128);">(ggf. wenn EC2-Instanz erstellt ist?)</span>
+</p>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">6. Deklaration der EC2 Instanz</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="75">
+    <ri:attachment ri:filename="icon-aws-ec2.png"/>
+  </ac:image>Nun haben wir alle Services beisammen die wir zum Betrieb unseres Containers benötigen. Da wir die bisher erstellten Serviceressourcen auf einer Servermaschine laufen lassen wollen, erstellen wir als letztes eine EC2 Instanz mit Hilfe des AWS-Services <strong>EC2 (Elastic Compute Cloud)</strong>.<br/>
+  <br/>Alle zur verfügung stehenden EC2 Instanztypen (AMI = Amazon Machine Image) finden Sie unter <span style="color: rgb(128,128,128);">`EC2 &gt; Abbilder &gt; AMI Catalog`</span>.<br/>
+  <br/>The next Terraform file will describe our <span style="color: rgb(0,0,128);">**</span>AWS EC2<span style="color: rgb(0,0,128);">** </span>instance:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="194e3d85-7353-45fe-9859-0cdf5b9d72c6" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ec2_instance.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_instance" "workshop_ec2_instance" {
+    ami                  = "ami-509a053f"
+    instance_type        = "t2.micro"
+    security_groups      = ["${aws_security_group.workshop_ecs_security_group.name}"]
+    iam_instance_profile = "${aws_iam_instance_profile.workshop_iam_instance_profile.name}"
+    user_data            = <<EOF
+#!/bin/bash
+echo ECS_CLUSTER=${aws_ecs_cluster.workshop_ecs_cluster.name} > /etc/ecs/ecs.config
+EOF
+    tags = {
+        Name = "workshop_ec2_instance"
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>Das Feld <span style="color: rgb(255,102,0);">user_data</span> definiert hier Shell-Skript, das beim Startend der Maschine ausgeführt wird.<br/>Hier ist es erforderlich, den Namen unseres ECS-Clusters in die ECS-Configdatei <span style="color: rgb(255,102,0);">/etc/ecs/ecs.config</span> auf der Servermaschine zu schreiben.</p>
+<ac:structured-macro ac:macro-id="7faa64bb-83fe-46e5-90b6-1c384e1bb94d" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Unsere neue EC2-Instanz wird anschließend im AWS EC2 service angezeigt:<br/>
+  <span>![EC2 &gt; Instances &gt; Instances](_ASSET/screenshot/ec2_instance.png)</span>
+  <br/>
+  <br/>Die <span style="color: rgb(128,128,128);">`public IP` </span>der EC2-Instanz kann hier ausgelesen werden.<br/>Mit einem cURL können wir nun die Node.js-Express-Anwendung in unserem Container erreichen:</p>
+<ac:structured-macro ac:macro-id="de98ce93-5814-4611-a88a-8c12b0b19270" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% curl -v http://13.40.148.82:5555/user
+* Trying 3.70.224.181:5555...
+* Connected to 3.70.224.181 (3.70.224.181) port 5555 (#0)
+> GET /user HTTP/1.1
+> Host: 3.70.224.181:5555
+> User-Agent: curl/7.77.0
+> Accept: */*
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< X-Powered-By: Express
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 135
+< ETag: W/"87-gHZz+1+n7pHvd2ovXSzGNYJ6RNM"
+< Date: Sat, 08 Jan 2022 11:17:44 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+<
+* Connection #0 to host 3.70.224.181 left intact
+[{"name":"John Smith","username":"jsmith"},{"name":"Jane Williams","username":"jwilliams"},{"name":"Robert Brown","username":"rbrown"}]% ]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+  <span style="color: rgb(128,128,128);">Auch im Browser können wir das von der Node.js Express-Anwendung zurückgegebenen JSON-Body ausgeben:<br/>
+    <br/>http://...:5555/<br/>
+    <br/>+ Screenshot!<br/>
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="132b417d-820b-416b-ab30-d2bfa1a5c401" ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Herzlichen Glückwunsch! An dieser Stelle haben Sie den Docker-Container in die AWS Cloud deployed und so die Node.js-Applikation auf dem Port <strong>5555</strong> einer <strong>public IP</strong> öffentlich verfügbar gemacht.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">7. Deklaration von Ausgabevariablen</span>
+</h2>
+<p>Output Queries Values from AWS<br/>Mit dem `output` Schlüsselwort können nach Abschluß des Deploy-Vorgangs<br/>Werte ausgegeben werden. Dies bietet sich an, um die erstellt public IP-Adresse auszugeben.<br/>
+  <br/>Wir erstellen die Datei `output.tf` und definieren hier unsere Ausgabevariablen.</p>
+<ac:structured-macro ac:macro-id="6d0ae73d-123f-403d-babc-d2ad095da266" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/output.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[output "API_HOST" {
+    value = "http://${aws_instance.workshop_ec2_instance.public_ip}"
+}
+
+output "CURL_TEST_COMMAND_NODE" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5555/user'"
+}
+
+output "PUBLIC_DNS" {
+    value = "https://${aws_instance.workshop_ec2_instance.public_dns}"
+}
+
+output "URL_ECS_REPOSITORY_NODE" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<p>Anschließend wenden diese Erweiterung in unserer Konfiguration an:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="7d913b7d-2045-49f1-b7d7-f46ccfd4c2be" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Nach dem Abschluss des Vorgangs werden die definierten Ausgabevariablen nun mit den für uns interessanten Werten angezeigt:</p>
+<ac:structured-macro ac:macro-id="9df93042-26d9-4b69-aaf9-6b74eee0d736" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[// TODO adjust!
+API_HOST = "http://3.70.224.181"
+CURL_TEST_COMMAND_NODE = "curl -v 'http://3.70.224.181:5555/user'"]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>Hier können wir uns direkt die vergebene public-IP anzeigen lassen und auch direkt das cURL-Testkommando ausgeben.</p>
+<p>Das `terraform output` Kommando kann auch unabhängig ausgeführt werden und gibt alle definierten Ausgabe-Variablen aus:</p>
+<ac:structured-macro ac:macro-id="e0548f39-5409-441d-b397-85f0d0fa96ba" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform output
+TODO output!]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Terraform outputs help to connect Terraform projects with other parts of your infrastructure, or with other Terraform projects.</p>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">8. Deklaration von Eingabevariablen</span>
+</h2>
+<p>Ein wichtiges Feature von Terraform ist die Deklaration von Eingabevariablen. Somit können veränderliche und wiederholt hardgecodete Werte an einer zentralen Stelle definiert werden.</p>
+<p>We'll extract the region <span style="color: rgb(128,128,128);">`eu-central-1` </span>to one distinct place now and replace it in all occuring files:</p>
+<p>Beispielsweise können wir die AWS-Region in einer neuen Eingabevariable <span style="color: rgb(255,102,0);">aws_region</span> deklarieren:</p>
+<ac:structured-macro ac:macro-id="fe60315d-41f8-49de-82a1-a1036d2292a8" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/input.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[variable "aws_region" {
+    default = "eu-central-1" # Frankfurt am Main
+    description = "Default region for all resources to deploy"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>Nun können die beiden Vorkommnisse des String Literals "<span style="color: rgb(255,102,0);">eu-central-1</span>" in den beiden Dateien <span style="color: rgb(255,102,0);">terraform/provider.tf</span> und <span style="color: rgb(255,102,0);">terraform/ecr_repository_node.tf</span> durch die Variablenspezifikation <span style="color: rgb(255,102,0);">${var.aws_region}</span> ersetzt werden:</p>
+<ac:structured-macro ac:macro-id="a72269e4-9061-4023-9ed9-afd478fb50a3" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/provider.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[provider "aws" {
+    region = "${var.aws_region}"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<p class="auto-cursor-target">
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="464dcb49-0aac-4c2a-9e20-e1fed0b04ad9" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecr_repository_node.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecr_repository" "workshop_ecr_repository_node" {
+    name = "workshop_ecr_repository_node"
+
+    // login to local Docker registry
+    provisioner "local-exec" {
+        command = "aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+        interpreter = ["bash", "-c"]
+    }
+...]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<p>Eingabevariablen können außerdem über die CLI definiert werden. Dies überschreibt die in den Terraform-Dateien festgelegten Werte:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="35aa7b5c-2076-440f-bd62-4d2a968c9e08" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply -var "region=YetAnotherRegion"]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="2554cc55-e7b9-4815-a019-cce044fefbca" ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Herzlichen Glückwunsch! Sie haben jetzt den Hauptteil des Workshops abgeschlossen und die wichtigsten Terraform und AWS Komponenten für das Deployment von Containeranwendungen in der AWS Cloud in der Praxis kennengelernt.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">9. Container Nummer Zwei: nginx</span>
+</h2>
+<h2>
+  <span style="color: rgb(0,0,0);">
+    <ac:image ac:align="right" ac:thumbnail="true" ac:width="180">
+      <ri:attachment ri:filename="logo-nginx.png"/>
+    </ac:image>
+  </span>
+</h2>
+<p>
+  <span style="color: rgb(0,0,0);">In unserem zweiten Container wollen wir eine nginx Webserver betreiben, in dem wir eine Web-Frontend Applikation betreiben wollen. </span>
+  <span style="color: rgb(0,0,0);">Diese besteht aus einer HTML-Datei sowie diversen JavaScript und Resourcen-Dateien.</span>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">9.1. Web-Applikation lokal ablegen</span>
+</h3>
+<p>Bei der Web-Applikation handelt es sich um eine statische HTML-Webapplikation mit eingebundenem JavaScript und Bildressourcen. Die gesamte Web-Applikation befindet sich in dem folgendem Archiv. Dieses muss an der angegebenen Stelle in unserem Projektordner abgelegt werden:</p>
+<ul>
+  <li>
+    <u>
+      <span style="color: rgb(255,102,0);">
+        <ac:link>
+          <ri:attachment ri:filename="mayflower-outrun-1.0.0.tar.gz"/>
+          <ac:plain-text-link-body><![CDATA[application/html/mayflower-outrun-1.0.0.tar.gz]]></ac:plain-text-link-body>
+        </ac:link>
+      </span>
+    </u>
+  </li>
+</ul>
+<h3>
+  <span style="color: rgb(0,0,0);">9.2. nginx Dockerfile</span>
+</h3>
+<p>Hier ist das Dockerfile für nginx in den unsere Web-Applikation kopiert wird.<br/>Dabei beinhaltet die Anweisung ADD im Dockerfile eine Magic, mit der die zuvor abgelegte Archivdatei direkt an den Zielort im Docker-Container extrahiert wird:</p>
+<ac:structured-macro ac:macro-id="fc59a184-9d3a-4674-908f-a9fc5fb3ae6d" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">text</ac:parameter>
+  <ac:parameter ac:name="title">Dockerfile-nginx</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[FROM ubuntu:16.04
+
+# setup nginx and put its daemon off
+run apt-get update && apt-get install -y nginx \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && echo "daemon off;" >> /etc/nginx/nginx.conf
+
+# this is our default conf file for nginx
+ADD default /etc/nginx/sites-available/default
+
+# copy html website into this container
+ADD application/html/mayflower-outrun-1.0.0.tar.gz /var/www/html/
+
+# make container's port 80 (nginx default http port) accessible to the outside
+EXPOSE 80
+
+# run nginx
+CMD [ "nginx" ]]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<h3>
+  <span style="color: rgb(0,0,0);">9.3. nginx default configuration</span>
+</h3>
+<p>Für nginx muss eine default configuration deployed werden. Add `default`:<br/>
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="dbaa5c8b-82dd-4961-b315-91c4a2c4e56e" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">default</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[server {
+    listen 80 default_server;
+
+    root /var/www/html;
+
+    index index.html index.htm;
+
+    server_name _;
+
+    charset utf-8;
+
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt { log_not_found off; access_log off; }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">9.4. neues ECR Repository für den nginx Container</span>
+</h3>
+<p>Der `docker login` Befehl muss hier nicht erneut definiert werden,<br/>da er bereits im ECR-Repository für den node-Container ausgeführt wird. Ein einmaliges Ausführen genügt.</p>
+<ac:structured-macro ac:macro-id="bc73fbb4-05cf-4451-95fe-b2586530f9e7" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_repository_nginx.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecr_repository" "workshop_ecr_repository_nginx" {
+    name = "workshop_ecr_repository_nginx"
+
+    // build local Docker Image from Dockerfile
+    provisioner "local-exec" {
+        command = "docker build -t workshop_ecr_repository_nginx -f ${path.module}/../Dockerfile-nginx ${path.module}/../"
+        interpreter = ["bash", "-c"]
+    }
+
+    // tag Docker Image
+    provisioner "local-exec" {
+        command = "docker tag workshop_ecr_repository_nginx:latest ${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}:latest"
+        interpreter = ["bash", "-c"]
+    }
+
+    // push Docker Image to ECR
+    provisioner "local-exec" {
+        command = "docker push ${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}:latest"
+        interpreter = ["bash", "-c"]
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">9.5. Neuer Task zur Task-Definition hinzufügen</span>
+</h3>
+<p>Erweitern `terraform/ecs_task_definition.tf`.<br/>Hier wird der zweite Container hinzugefügt und hierfür dessen Image und Port Mapping deklariert:</p>
+<ac:structured-macro ac:macro-id="255d4ed3-734d-4a34-a8db-5b6237c3168b" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_task_definition.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecs_task_definition" "workshop_ecs_task" {
+    family = "workshop_ecs_task"
+    container_definitions = <<EOF
+    [
+        {
+            "name": "node",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5555,
+                    "protocol": "tcp",
+                    "containerPort": 8181
+                }
+            ]
+        },
+        {
+            "name": "nginx",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5556,
+                    "protocol": "tcp",
+                    "containerPort": 80
+                }
+            ]
+        }
+    ]
+EOF
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">9.6. Öffnen des Ports 5556 für eingehende Requests</span>
+</h3>
+<p>Hierfür muss die <span style="color: rgb(128,128,128);">`terraform/ecs_security_group.tf` </span>erweitert werden und der eingehender Verkehr auf dem Port <strong>5556</strong> sowie dessen Weitergabe explizit erlaubt werden:</p>
+<ac:structured-macro ac:macro-id="a69c447c-d44d-4797-a6cd-d3593b3554be" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_security_group.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_security_group" "workshop_ecs_security_group" {
+    name = "workshop_ecs_security_group"
+
+    ingress {
+        from_port   = 5555 # allow traffic in from port 5555
+        to_port     = 5555
+        protocol    = "tcp" # allow ingoing tcp protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+    }
+    ingress {
+        from_port   = 5556 # allow traffic in from port 5556
+        to_port     = 5556
+        protocol    = "tcp" # allow ingoing tcp protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic in from all sources
+    }
+
+    egress {
+        from_port   = 0 # allow traffic out on all ports
+        to_port     = 0
+        protocol    = "-1" # allow any outgoing protocol
+        cidr_blocks = ["0.0.0.0/0"] # allow traffic out from all sources
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">9.7. Erweitern der Ausgabevariablen</span>
+</h3>
+<p>Die Repository-URL des nginx-Docker-Images können wir, ebenso wie den CURL-Befehl zum Requesten der nginx-Applikation<br/>zu unseren Ausgabevariablen hinzufügen:</p>
+<ac:structured-macro ac:macro-id="fb675eaa-16a2-433f-aca9-2c5a51852ea1" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/output.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[output "API_HOST" {
+    value = "http://${aws_instance.workshop_ec2_instance.public_ip}"
+}
+
+output "CURL_TEST_COMMAND_NODE" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5555/user'"
+}
+output "CURL_TEST_COMMAND_NGINX" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5556'"
+}
+
+output "PUBLIC_DNS" {
+    value = "https://${aws_instance.workshop_ec2_instance.public_dns}"
+}
+
+output "URL_ECS_REPOSITORY_NODE" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+}
+output "URL_ECS_REPOSITORY_NGINX" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">Anwenden der neuen Konfiguration</span>
+</h3>
+<p>Wenden wir nun die neue Konfiguration an</p>
+<ac:structured-macro ac:macro-id="7f4518c6-3d24-493f-aad2-b2d0bb75a356" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>so läuft auch unser zweiter Container und kann via cURL erreicht werden.</p>
+<ac:structured-macro ac:macro-id="738ea68a-ba0d-4dbb-aab5-193b61026703" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% curl -v '3.70.224.181:5556'
+TODO output!]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>Da es sich bei der HTML-Webapplikation um ein Browserspiel handelt, kann die Webseite auch im Browser geöffnet werden:</p>
+<p>
+  <span style="color: rgb(128,128,128);">TODO screenshot!</span>
+</p>
+<ac:structured-macro ac:macro-id="08401944-d443-4371-a4d3-0373d4680725" ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Herzlichen Glückwunsch! Sie haben jetzt Ihren zweiten Docker-Container in die AWS Cloud deployed und diesmal eine Web-Frontend Applikation auf einem nginx-Webserver unter einer <strong>public IP</strong> und dem Port <strong>5556</strong> veröffentlicht.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">10. Container Nummer Drei: php-fpm</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="160">
+    <ri:attachment ri:filename="logo-php-fpm.png"/>
+  </ac:image>Als dritte Applikation wollen wir nun eine PHP-Web-Backendapplikation mit PHP und dem Laravel-Framework in einem dritten Container betreiben. Im dritten Container muss hierfür der <strong>php-fpm</strong> (PHP FastCGI Process Manager) betrieben werden. Dieser funktioniert nur in Verbindung mit unserem nginx-Server, der weiterhin im zweiten Container betrieben wird, hierfür aber die eingehenden Requests an den php-fpm weiterleiten und von ihm bearbeiten lassen muss, bevor diese anschließend wieder vom nginx-Server zurückgegeben werden.</p>
+<h3>
+  <span style="color: rgb(0,0,0);">10.1. PHP8/Laravel Web-Applikation</span>
+</h3>
+<p>
+  <span style="color: rgb(0,0,0);">
+    <ac:image ac:align="right" ac:thumbnail="true" ac:width="195">
+      <ri:attachment ri:filename="logo-laravel8.png"/>
+    </ac:image>
+    <ac:image ac:align="right" ac:thumbnail="true" ac:width="135">
+      <ri:attachment ri:filename="logo-php8.png"/>
+    </ac:image>Auch die PHP-Applikation wurde zur besseren Handhabung in eine Archivdatei verpackt. Diese muss hier heruntergeladen und an angegebener Stelle in unserem Projektordner abgelegt werden:</span>
+</p>
+<ul>
+  <li>
+    <span style="color: rgb(0,0,0);">
+      <u>
+        <span style="color: rgb(255,102,0);">
+          <ac:link>
+            <ri:attachment ri:filename="laravel-app.tar.gz"/>
+            <ac:plain-text-link-body><![CDATA[application/php/laravel-app.tar.gz]]></ac:plain-text-link-body>
+          </ac:link>
+        </span>
+      </u>
+    </span>
+  </li>
+</ul>
+<h3>
+  <span style="color: rgb(0,0,0);">10.2. PHP Dockerfile</span>
+</h3>
+<p>Add <span style="color: rgb(128,128,128);">`Dockerfile-PHP`</span>.<span style="color: rgb(102,14,122);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="29a7c174-ea3d-47db-8911-a9187efda2f3" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">text</ac:parameter>
+  <ac:parameter ac:name="title">Dockerfile-PHP</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[FROM ubuntu:20.04
+
+RUN apt-get clean && apt-get -y update && apt-get install -y locales && locale-gen en_US.UTF-8
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US.UTF-8' LC_ALL='en_US.UTF-8'
+
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
+
+# PHP and composer installation is essential for this container.
+# Some of the packages are required for the PHP framework.
+RUN apt-get update \
+
+    && apt-get install -y curl zip unzip git software-properties-common \
+    && add-apt-repository -y ppa:ondrej/php \
+    && apt-get install -y php8.0-fpm php8.0-cli php8.0-mcrypt php8.0-gd php8.0-mysql \
+       php8.0-pgsql php8.0-imap php-memcached php8.0-mbstring php8.0-xml php8.0-curl \
+    && php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer \
+    && mkdir /run/php \
+    && apt-get remove -y --purge software-properties-common \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# This will copy the custom FPM file with proper port and listener
+ADD php-fpm.conf /etc/php/8.0/fpm/php-fpm.conf
+ADD www.conf /etc/php/8.0/fpm/pool.d/www.conf
+
+# deploy the PHP/Laravel app into the webserver root dir
+ADD application/php/laravel-app.tar.gz /var/www/html/
+
+# Set the working directory
+WORKDIR /var/www/html
+
+# This is needed to setup the laravel framework inside this container
+RUN composer update
+RUN mv .env.example .env
+
+# There is no particular requirement for this port but I am just using it.
+EXPOSE 5556
+
+CMD ["php-fpm8.0"]]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">10.3. php-fpm configs</span>
+</h3>
+<p>Damit der php-fpm funktioniert, werden im PHP-Dockerfile noch die beiden Konfigurationsdateien <span style="color: rgb(128,128,128);">
+    <span style="color: rgb(255,102,0);">php-fpm.conf</span> </span>sowie <span style="color: rgb(128,128,128);">
+    <span style="color: rgb(255,102,0);">www.conf</span> </span>deployed. Laden Sie die Dateien hier herunter und legen Sie sie in Ihrem Projektordner ab:</p>
+<ul>
+  <li>
+    <ac:link>
+      <ri:attachment ri:filename="php-fpm.conf"/>
+    </ac:link>
+  </li>
+  <li>
+    <ac:link>
+      <ri:attachment ri:filename="www.conf"/>
+    </ac:link>
+  </li>
+</ul>
+<h3>
+  <span style="color: rgb(0,0,0);">10.4. nginx Dockerfile</span>
+</h3>
+<p>Im nginx Dockerfile müssen wir eine kleine Anpassung durchführen, da jetzt im Container ja nicht mehr die Mayflower Outrun-Applikation sondern die PHP Laravel App <span style="color: rgb(128,128,128);">`application/php/laravel-app.tar.gz` ausgeliefert werden soll. </span>Revise <span style="color: rgb(128,128,128);">`Dockerfile-nginx`:<br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="5eaf70d2-b8f8-4106-8206-d33b798be052" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">text</ac:parameter>
+  <ac:parameter ac:name="title">Dockerfile-nginx</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[FROM ubuntu:16.04
+
+# setup nginx and put its daemon off
+run apt-get update && apt-get install -y nginx \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && echo "daemon off;" >> /etc/nginx/nginx.conf
+
+# this is our default conf file for nginx
+ADD default /etc/nginx/sites-available/default
+
+# deploy the PHP/Laravel app into the webserver root dir
+ADD application/php/laravel-app.tar.gz /var/www/html/
+
+# make container's port 80 (nginx default http port) accessible to the outside
+EXPOSE 80
+
+# run nginx
+CMD [ "nginx" ]]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">10.5. nginx default configuration</span>
+</h3>
+<p>Erweitern für Support des PHP Präprozessors in der nginx default configuration:</p>
+<p>
+  <br/>
+  <strong>default</strong>
+</p>
+<ac:structured-macro ac:macro-id="4f14fcc4-48a4-46d9-9455-f1a246a34ee7" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">Default</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[server {
+    listen 80 default_server;
+
+    root /var/www/html/public;
+
+    index index.html index.htm index.php;
+
+    server_name _;
+
+    charset utf-8;
+
+    location = /favicon.ico { log_not_found off; access_log off; }
+    location = /robots.txt  { log_not_found off; access_log off; }
+
+    location / {
+        try_files $uri $uri/ /index.php$is_args$args;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass php:5556;
+    }
+
+    error_page 404 /index.php;
+
+    location ~ /\.ht {
+        deny all;
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">10.6. Neues ECR Repository für den php-fpm Container</span>
+</h3>
+<p>Add `terraform/ecr_repository_php`.<br/>
+  <br/>
+</p>
+<ac:structured-macro ac:macro-id="bcaf3228-87df-4cc6-855c-029a997de5e3" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecr_repository_php</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecr_repository" "workshop_ecr_repository_php" {
+    name = "workshop_ecr_repository_php"
+
+    // build local Docker Image from Dockerfile
+    provisioner "local-exec" {
+        command = "docker build -t workshop_ecr_repository_php -f ${path.module}/../Dockerfile-PHP ${path.module}/../"
+        interpreter = ["bash", "-c"]
+    }
+
+    // tag Docker Image
+    provisioner "local-exec" {
+        command = "docker tag workshop_ecr_repository_php:latest ${aws_ecr_repository.workshop_ecr_repository_php.repository_url}:latest"
+        interpreter = ["bash", "-c"]
+    }
+
+    // push Docker Image to ECR
+    provisioner "local-exec" {
+        command = "docker push ${aws_ecr_repository.workshop_ecr_repository_php.repository_url}:latest"
+        interpreter = ["bash", "-c"]
+    }
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">10.7. Erweitern der ECS Task Definition</span>
+</h3>
+<p>Erweitern <span style="color: rgb(128,128,128);">`terraform/ecs_task_definition.tf`</span>.<br/>Es wird nun der dritte Container für den php-fpm hinzugefügt. Dieser erhält<br/>kein Port-Mapping sondern wird mithilfe der Angabe im Feld <span style="color: rgb(128,128,128);">`links` </span>auf den nginx-Container aufgeschaltet.</p>
+<ac:structured-macro ac:macro-id="b5ec4d13-a55f-4e08-894e-066ea9cdae8d" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/ecs_task_definition.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[resource "aws_ecs_task_definition" "workshop_ecs_task" {
+    family = "workshop_ecs_task"
+    container_definitions = <<EOF
+    [
+        {
+            "name": "node",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}",
+            "essential": true,
+            "portMappings": [
+                {
+                    "hostPort": 5555,
+                    "protocol": "tcp",
+                    "containerPort": 8181
+                }
+            ]
+        },
+        {
+            "name": "nginx",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}",
+            "essential": true,
+            "links": [
+                "php:php"
+            ],
+            "portMappings": [
+                {
+                    "hostPort": 5556,
+                    "protocol": "tcp",
+                    "containerPort": 80
+                }
+            ]
+        },
+        {
+            "name": "php",
+            "cpu": 128,
+            "memory": 128,
+            "image": "${aws_ecr_repository.workshop_ecr_repository_php.repository_url}",
+            "essential": true
+        }
+    ]
+    EOF
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">10.8. Erweitern der Ausgabevariablen</span>
+</h3>
+<p>Auch die Repository-URL des php-fpm-Docker-Images können wir und ebenso wie der CURL-Befehl zum Requesten der PHP Laravel-Applikation<br/>zu unseren Ausgabevariablen hinzufügen:</p>
+<ac:structured-macro ac:macro-id="7a709a15-1aba-4cb3-8d26-a585337ee8e1" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">py</ac:parameter>
+  <ac:parameter ac:name="title">terraform/output.tf</ac:parameter>
+  <ac:parameter ac:name="linenumbers">true</ac:parameter>
+  <ac:plain-text-body><![CDATA[output "API_HOST" {
+    value = "http://${aws_instance.workshop_ec2_instance.public_ip}"
+}
+
+output "CURL_TEST_COMMAND_NODE" {
+    value = "curl -v 'http://${aws_instance.workshop_ec2_instance.public_ip}:5555/user'"
+}
+output "CURL_TEST_COMMAND_PHP" {
+    value = "curl -v --header 'Accept: application/json' 'http://${aws_instance.workshop_ec2_instance.public_ip}:5556/api/v1/countries?name=Spain'"
+}
+
+output "PUBLIC_DNS" {
+    value = "https://${aws_instance.workshop_ec2_instance.public_dns}"
+}
+
+output "URL_ECS_REPOSITORY_NODE" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+}
+output "URL_ECS_REPOSITORY_NGINX" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}"
+}
+output "URL_REPOSITORY_PHP" {
+    value = "${aws_ecr_repository.workshop_ecr_repository_php.repository_url}"
+}]]></ac:plain-text-body>
+</ac:structured-macro>
+<h3>
+  <span style="color: rgb(0,0,0);">Anwenden der neuen Konfiguration</span>
+</h3>
+<p>Da sich der Inhalt unseres nginx-Containers nun geändert haben, zerstören wir nun explizit die Terraform Konfiguration: (?? TODO check!)<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="5a8d4f24-81dd-40c5-bdd0-b5fcda75abf6" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform destroy]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>Wenden wir die geänderte Konfiguration nun an:</p>
+<ac:structured-macro ac:macro-id="e3e499f8-8c79-46ba-a8f2-02d0909c56e6" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform apply]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>so können wir einen CURL auf die PHP-Laravel-Applikation durchführen.<br/>Diese Anwendung liefert uns den ISO-Country-Code für das angegebene Land.<br/>Unterstützt werden als Eingabewerte die Werte <span style="color: rgb(128,128,128);">`Spain` </span>und <span style="color: rgb(128,128,128);">`UK`</span>.</p>
+<ac:structured-macro ac:macro-id="e51c0284-21cb-4ac0-b0dc-9b4391d10432" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% curl -v --header 'Accept: application/json' 'http://3.124.209.246:5556/api/v1/countries?name=UK'
+* Trying 3.124.209.246:5556...
+* Connected to 3.124.209.246 (3.124.209.246) port 5556 (#0)
+> GET /api/v1/countries?name=UK HTTP/1.1
+> Host: 3.124.209.246:5556
+> User-Agent: curl/7.77.0
+> Accept: application/json
+>
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Server: nginx/1.10.3 (Ubuntu)
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Connection: keep-alive
+< Cache-Control: no-cache, private
+< Date: Sat, 08 Jan 2022 14:10:18 GMT
+<
+* Connection #0 to host 3.124.209.246 left intact
+{"ISO":"GB"}%]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="56903a0f-a092-440c-a9bb-127ea710c3ef" ac:name="tip" ac:schema-version="1">
+  <ac:rich-text-body>
+    <p>Herzlichen Glückwunsch! Sie haben nun alle drei Docker-Container in die AWS Cloud deployed und diesmal eine Web-Backend-Applikation mit PHP8 und dem Laravel-Framework auf dem Port <strong>5556</strong> einer <strong>öffentlichen IP</strong> zur Verfügung gestellt. Damit haben Sie das Ende des praktischen Workshops erreicht. &#55356;&#57225; &#55356;&#57225;</p>
+    <p>
+      <ac:image ac:align="right" ac:thumbnail="true" ac:width="40">
+        <ri:attachment ri:filename="logo-github.png"/>
+      </ac:image>Den Projektcode zum Workshop finden Sie in dem folgenden GitHub Repository:<br/>
+      <a href="https://github.com/christopherstock/TerraformAwsWorkshop">https://github.com/christopherstock/TerraformAwsWorkshop</a>
+    </p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">Mehr praktische Terraform Befehle</span>
+</h2>
+<p>Alle Terraform Dateien im aktuellen Verzeichnis automatisch und einheitlich formatieren:</p>
+<ac:structured-macro ac:macro-id="69611f1e-04d7-4b05-8f29-cbce60aae346" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform fmt]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Geplante Änderungen in der Konfiguration aufzeigen, ohne sie auszuführen. Dies entspricht einem "dry run" des Befehls "terraform apply":<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="71ab6ca5-f2d4-4a8b-a36d-288a64ab56d3" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform plan]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Überprüfen der aktuellen Terraform Configuration auf syntaktische Fehler:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="866613d0-11ee-448d-928c-86da7619534d" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform validate]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Ausgabe des aktuellen Terraform State Configuration:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="f8eac861-ee3e-434f-adb5-1df14f6c6fad" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform show]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Ausgabe aller aktiven Resourcen der aktuellen Terraform State Configuration:<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="f0618582-24cf-4868-992b-c61672812b23" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform state list]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>Terraform kann auch die aktuelle Config aus der AWS Web-Oberfläche auslesen und in einer lokalen Terraform-Konfiguration ablegen.<br/>Hierfür gibt's von Hashicorp ein <a href="https://github.com/hashicorp/learn-terraform-import">eigenes Tutorial</a>.<span style="color: rgb(128,128,128);">
+    <br/>
+  </span>
+</p>
+<ac:structured-macro ac:macro-id="85501321-3604-476e-8c90-5ba0acdf003c" ac:name="code" ac:schema-version="1">
+  <ac:parameter ac:name="language">bash</ac:parameter>
+  <ac:plain-text-body><![CDATA[% terraform import docker_container.web $(docker inspect -f {{.ID}} hashicorp-learn)]]></ac:plain-text-body>
+</ac:structured-macro>
+<p>
+  <br/>
+</p>
+<hr/>
+<h2>
+  <span style="color: rgb(0,0,0);">Das Schweizer Messer für die Cloud Infrastruktur</span>
+</h2>
+<p>
+  <ac:image ac:align="right" ac:thumbnail="true" ac:width="200">
+    <ri:attachment ri:filename="swizz-knife1.jpg"/>
+  </ac:image>Mit Terraform kann die gesamte Cloud Infrastruktur für unsere Anwendungen deklariert und verwaltet werden. Die einzelnen Komponenten unserer Cloud Infrastruktur müssen somit nicht manuell über die grafische Weboberfläche angelegt und verwaltet werden. Terraform funktioniert mit allen großen Cloud Providern – darunter sind neben AWS auch Microsoft Azure, Google Cloud, Kubernetes und Oracle Cloud Infrastructure.</p>
+<p>Ich freue mich wenn ich Ihnen in unserem Hands-on einen schnellen Einstieg in die praktische Arbeit mit Terraform und dem Cloud Provider AWS geben konnte. Für Rückfragen können Sie mich gerne unter <a href="mailto:christopher.stock@mayflower.de">christopher.stock@mayflower.de</a> erreichen.</p>
+<p>
+  <br/>
+</p>
