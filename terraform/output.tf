@@ -14,11 +14,11 @@ output "PUBLIC_DNS" {
 }
 
 output "URL_ECS_REPOSITORY_NODE" {
-    value = "${aws_ecr_repository.workshop_ecr_repository_node.repository_url}"
+    value = aws_ecr_repository.workshop_ecr_repository_node.repository_url
 }
 output "URL_ECS_REPOSITORY_NGINX" {
-    value = "${aws_ecr_repository.workshop_ecr_repository_nginx.repository_url}"
+    value = aws_ecr_repository.workshop_ecr_repository_nginx.repository_url
 }
 output "URL_REPOSITORY_PHP" {
-    value = "${aws_ecr_repository.workshop_ecr_repository_php.repository_url}"
+    value = aws_ecr_repository.workshop_ecr_repository_php.repository_url
 }
