@@ -8,7 +8,6 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
 # PHP and composer installation is essential for this container.
 # Some of the packages are required for the PHP framework.
 RUN apt-get update \
-
     && apt-get install -y curl zip unzip git software-properties-common \
     && add-apt-repository -y ppa:ondrej/php \
     && apt-get install -y php8.0-fpm php8.0-cli php8.0-mcrypt php8.0-gd php8.0-mysql \
@@ -30,7 +29,7 @@ ADD application/php/laravel-app.tar.gz /var/www/html/
 WORKDIR /var/www/html
 
 # This is needed to setup the laravel framework inside this container
-RUN composer update
+RUN composer --ignore-platform-req=ext-* update
 RUN mv .env.example .env
 
 # There is no particular requirement for this port but I am just using it.
