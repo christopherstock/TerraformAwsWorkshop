@@ -1,5 +1,6 @@
 resource "aws_ecr_repository" "workshop_ecr_repository_php" {
     name = "workshop_ecr_repository_php"
+    force_delete = true
 
     // build local Docker Image from Dockerfile
     provisioner "local-exec" {

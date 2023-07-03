@@ -1,5 +1,6 @@
 resource "aws_ecr_repository" "workshop_ecr_repository_node" {
     name = "workshop_ecr_repository_node"
+    force_delete = true
 
     // login to local Docker registry
     provisioner "local-exec" {
