@@ -3,6 +3,7 @@
 
 # Terraform
 .terraform
+*.tfstate
 
 # macOS
 .DS_Store
